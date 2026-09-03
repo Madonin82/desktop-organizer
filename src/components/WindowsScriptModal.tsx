@@ -151,6 +151,12 @@ export const WindowsScriptModal: React.FC<WindowsScriptModalProps> = ({
             <Info className="w-4 h-4 text-blue-400" />
             <span>How to run this on your Windows PC:</span>
           </div>
+          <div className="p-3 bg-blue-950/40 border border-blue-800/60 rounded-lg text-blue-200 mb-2">
+            <p className="font-semibold mb-1">⚡ Instant Windows Desktop App in your downloaded GitHub folder:</p>
+            <p className="text-neutral-300 text-[11.5px] leading-relaxed">
+              If you downloaded this project from GitHub, simply double-click <strong>Organizer-Desktop-App.bat</strong> right inside the folder! It launches the native Windows GUI app directly on your machine without requiring Node.js or npm.
+            </p>
+          </div>
           <ol className="list-decimal list-inside space-y-1 text-neutral-400 pl-1">
             <li>
               Click <strong className="text-white">Download {fileName}</strong> above.
