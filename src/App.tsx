@@ -1,5 +1,11 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { TitleBar } from './components/TitleBar';
+import { SourceFolderSelector } from './components/SourceFolderSelector';
 import { FileTypePicker } from './components/FileTypePicker';
 import { FileList } from './components/FileList';
 import { TargetFolderPicker } from './components/TargetFolderPicker';
@@ -7,25 +13,21 @@ import { DesktopView } from './components/DesktopView';
 import { WindowsScriptModal } from './components/WindowsScriptModal';
 import { HistoryLog } from './components/HistoryLog';
 import { ExecutionModal } from './components/ExecutionModal';
-import { SourceFolderSelector } from './components/SourceFolderSelector';
+
 import { DesktopItem, FileCategoryKey, MoveOperation, ViewMode } from './types';
 import { INITIAL_MOCK_DESKTOP_ITEMS } from './data/mockDesktop';
-import { FILE_CATEGORIES, getCategoryExtensions } from './data/fileTypes';
+import { FILE_CATEGORIES } from './data/fileTypes';
 import { moveRealFile } from './utils/fileSystem';
 
-export function App() {
+export default function App() {
   const [items, setItems] = useState<DesktopItem[]>(INITIAL_MOCK_DESKTOP_ITEMS);
+  const [rootDirHandle, setRootDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
+  const [isRealFolder, setIsRealFolder] = useState<boolean>(false);
+  const [currentFolderName, setCurrentFolderName] = useState<string>('Desktop');
+
   const [selectedCategory, setSelectedCategory] = useState<FileCategoryKey>('images');
   const [customExtensions, setCustomExtensions] = useState<string[]>([]);
-  const [includeSubfolders, setIncludeSubfolders] = useState<boolean>(true);
-
-  // Folder & Environment State
-  const [currentFolderName, setCurrentFolderName] = useState<string>('clean these up');
-  const [isRealFolder, setIsRealFolder] = useState<boolean>(false);
-  const [rootDirHandle, setRootDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
-
-  // Destination Folder Name
-  const [targetFolderName, setTargetFolderName] = useState<string>('Pictures');
+  const [targetFolderName, setTargetFolderName] = useState<string>('Desktop\\Pictures');
 
   const [viewMode, setViewMode] = useState<ViewMode>('manager');
   const [operations, setOperations] = useState<MoveOperation[]>([]);
@@ -50,44 +52,29 @@ export function App() {
     }
   }, [isDark]);
 
-  // Existing target folders list
+  // Existing desktop folders list
   const existingFolders = useMemo(() => {
     const folderSet = new Set<string>();
     items.forEach((item) => {
-      if (item.destinationFolder) {
-        folderSet.add(item.destinationFolder);
-      } else if (item.folderPath && item.folderPath.trim() !== '') {
+      if (item.folderPath && item.folderPath.trim() !== '') {
         folderSet.add(item.folderPath);
       }
     });
     return Array.from(folderSet);
   }, [items]);
 
-  // Unorganized items count
+  // Unorganized items count on desktop root
   const unorganizedCount = useMemo(() => {
-    return items.filter((i) => {
-      if (i.destinationFolder || (i.folderPath && i.folderPath !== '')) return false;
-      if (!includeSubfolders && i.sourceSubfolder) return false;
-      return true;
-    }).length;
-  }, [items, includeSubfolders]);
+    return items.filter((i) => !i.folderPath || i.folderPath === '').length;
+  }, [items]);
 
   // Function to auto-select matching items based on category
   const selectMatchingCategoryItems = useCallback(
-    (
-      category: FileCategoryKey,
-      exts: string[] = customExtensions,
-      subfolders: boolean = includeSubfolders
-    ) => {
+    (category: FileCategoryKey, exts: string[] = customExtensions) => {
       setItems((prev) =>
         prev.map((item) => {
-          // Skip if already in a destination cleanup folder
-          if (item.destinationFolder || (item.folderPath && item.folderPath !== '')) {
-            return { ...item, selected: false };
-          }
-
-          // If subfolders disabled, skip items located in subfolders
-          if (!subfolders && item.sourceSubfolder) {
+          // Only select items that are in the root desktop (not yet in a subfolder)
+          if (item.folderPath && item.folderPath !== '') {
             return { ...item, selected: false };
           }
 
@@ -110,19 +97,13 @@ export function App() {
         })
       );
     },
-    [customExtensions, includeSubfolders]
+    [customExtensions]
   );
 
   // Initialize selection for default category on first load
   useEffect(() => {
     selectMatchingCategoryItems('images');
   }, []);
-
-  // Handle toggle subfolders
-  const handleToggleSubfolders = (val: boolean) => {
-    setIncludeSubfolders(val);
-    selectMatchingCategoryItems(selectedCategory, customExtensions, val);
-  };
 
   // Handle category change: update selected category, suggested folder, and select all matching
   const handleSelectCategory = (category: FileCategoryKey, exts?: string[]) => {
@@ -133,19 +114,19 @@ export function App() {
 
     // Auto-update suggested target folder name based on category
     if (category === 'all') {
-      setTargetFolderName('Cleaned Up Files');
+      setTargetFolderName('Desktop\\Desktop Cleanup');
     } else if (category === 'custom') {
-      const label = exts && exts[0] ? exts[0].toUpperCase() : 'Custom';
-      setTargetFolderName(`${label} Files`);
+      const label = (exts && exts[0]) ? exts[0].toUpperCase() : 'Custom';
+      setTargetFolderName(`Desktop\\${label} Files`);
     } else {
       const cat = FILE_CATEGORIES.find((c) => c.id === category);
       if (cat) {
-        setTargetFolderName(cat.defaultFolderName.replace(/^Desktop[\\/]/i, ''));
+        setTargetFolderName(cat.defaultFolderName);
       }
     }
 
     // Auto-select all matching files ("I run the app, pic the file type, and it selects them all")
-    selectMatchingCategoryItems(category, exts || customExtensions, includeSubfolders);
+    selectMatchingCategoryItems(category, exts || customExtensions);
   };
 
   // Toggle individual item selection
@@ -155,17 +136,14 @@ export function App() {
     );
   };
 
-  // Select all unorganized items currently eligible
+  // Select all items currently shown for this category on desktop
   const handleSelectAll = () => {
     setItems((prev) =>
       prev.map((item) => {
-        if (item.destinationFolder || (item.folderPath && item.folderPath !== '')) {
-          return item;
+        if (!item.folderPath || item.folderPath === '') {
+          return { ...item, selected: true };
         }
-        if (!includeSubfolders && item.sourceSubfolder) {
-          return item;
-        }
-        return { ...item, selected: true };
+        return item;
       })
     );
   };
@@ -192,33 +170,27 @@ export function App() {
     }
     // Re-apply current category selection on newly loaded items
     setTimeout(() => {
-      selectMatchingCategoryItems(selectedCategory, customExtensions, includeSubfolders);
+      selectMatchingCategoryItems(selectedCategory, customExtensions);
     }, 50);
   };
 
-  // Reset to sample cluttered folder items
+  // Reset to sample cluttered desktop items
   const handleResetToMock = () => {
     setItems(INITIAL_MOCK_DESKTOP_ITEMS);
     setRootDirHandle(null);
     setIsRealFolder(false);
-    setCurrentFolderName('Current Folder');
+    setCurrentFolderName('Desktop');
     setTimeout(() => {
-      selectMatchingCategoryItems(selectedCategory, customExtensions, includeSubfolders);
+      selectMatchingCategoryItems(selectedCategory, customExtensions);
     }, 50);
   };
 
   // Execute Move operation
   const handleExecuteMove = async () => {
-    const selectedItems = items.filter(
-      (i) =>
-        i.selected &&
-        !i.destinationFolder &&
-        (!i.folderPath || i.folderPath === '') &&
-        (includeSubfolders || !i.sourceSubfolder)
-    );
+    const selectedItems = items.filter((i) => i.selected && (!i.folderPath || i.folderPath === ''));
     if (selectedItems.length === 0) return;
 
-    const cleanFolder = targetFolderName.replace(/^[\\/]+|[\\/]+$/g, '');
+    const cleanFolder = targetFolderName.replace(/^Desktop[\\/]/i, '').replace(/^[\\/]+|[\\/]+$/g, '');
     if (!cleanFolder) return;
 
     setIsExecuting(true);
@@ -241,25 +213,19 @@ export function App() {
       // If connected to real folder and has fileHandle, execute real move
       if (rootDirHandle && item.fileHandle) {
         try {
-          await moveRealFile(
-            rootDirHandle,
-            item.fileHandle,
-            cleanFolder,
-            item.name,
-            item.parentDirHandle
-          );
+          await moveRealFile(rootDirHandle, item.fileHandle, cleanFolder, item.name);
         } catch (err) {
           console.error(`Failed to move file ${item.name}:`, err);
         }
       } else {
         // Virtual delay for smooth animation feedback
-        await new Promise((res) => setTimeout(res, 60));
+        await new Promise((res) => setTimeout(res, 80));
       }
 
       sourceFilesLog.push({
         id: item.id,
         name: item.name,
-        originalFolder: item.sourceSubfolder || item.folderPath || '',
+        originalFolder: item.folderPath || '',
         newFolder: cleanFolder,
       });
 
@@ -268,13 +234,11 @@ export function App() {
     }
 
     // Update state to move files into the destination folder
-    const selectedIds = new Set(selectedItems.map((i) => i.id));
     setItems((prev) =>
       prev.map((item) => {
-        if (selectedIds.has(item.id)) {
+        if (item.selected && (!item.folderPath || item.folderPath === '')) {
           return {
             ...item,
-            destinationFolder: cleanFolder,
             folderPath: cleanFolder,
             selected: false,
           };
@@ -287,7 +251,7 @@ export function App() {
       id: `op-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       sourceFiles: sourceFilesLog,
-      destinationFolder: cleanFolder,
+      destinationFolder: `Desktop\\${cleanFolder}`,
       fileCount: selectedItems.length,
       category: selectedCategory,
     };
@@ -303,17 +267,14 @@ export function App() {
     const op = operations.find((o) => o.id === operationId);
     if (!op) return;
 
-    const fileMap = new Map(op.sourceFiles.map((f) => [f.id, f.originalFolder]));
+    const fileIdsToRestore = new Set(op.sourceFiles.map((f) => f.id));
 
     setItems((prev) =>
       prev.map((item) => {
-        if (fileMap.has(item.id)) {
-          const originalSub = fileMap.get(item.id) || '';
+        if (fileIdsToRestore.has(item.id)) {
           return {
             ...item,
-            destinationFolder: undefined,
             folderPath: '',
-            sourceSubfolder: originalSub,
             selected: false,
           };
         }
@@ -325,21 +286,11 @@ export function App() {
   };
 
   const selectedCount = useMemo(() => {
-    return items.filter(
-      (i) =>
-        i.selected &&
-        !i.destinationFolder &&
-        (!i.folderPath || i.folderPath === '') &&
-        (includeSubfolders || !i.sourceSubfolder)
-    ).length;
-  }, [items, includeSubfolders]);
+    return items.filter((i) => i.selected && (!i.folderPath || i.folderPath === '')).length;
+  }, [items]);
 
   return (
-    <div
-      className={`flex flex-col h-screen w-screen overflow-hidden ${
-        isDark ? 'dark bg-neutral-950 text-neutral-100' : 'bg-neutral-100 text-neutral-900'
-      }`}
-    >
+    <div className={`flex flex-col h-screen w-screen overflow-hidden ${isDark ? 'dark bg-neutral-950 text-neutral-100' : 'bg-neutral-100 text-neutral-900'}`}>
       {/* Windows 11 Acrylic App Frame */}
       <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-neutral-900 shadow-2xl transition-colors">
         {/* Title Bar & Top Navigation */}
@@ -351,15 +302,13 @@ export function App() {
           totalItemsCount={items.length}
         />
 
-        {/* Source Folder Header & Sub-folder toggle */}
+        {/* Source Folder Header */}
         <SourceFolderSelector
           currentFolderName={currentFolderName}
           isRealFolder={isRealFolder}
           onDirectoryLoaded={handleDirectoryLoaded}
           onResetToMock={handleResetToMock}
           unorganizedCount={unorganizedCount}
-          includeSubfolders={includeSubfolders}
-          onToggleSubfolders={handleToggleSubfolders}
         />
 
         {/* Main Content Area based on active view mode */}
@@ -374,14 +323,13 @@ export function App() {
               setCustomExtensions={setCustomExtensions}
             />
 
-            {/* Step 2: Selected Files List (with sub-folder badges) */}
+            {/* Step 2: Selected Files List */}
             <FileList
               items={items}
               selectedCategory={selectedCategory}
               onToggleItem={handleToggleItem}
               onSelectAll={handleSelectAll}
               onDeselectAll={handleDeselectAll}
-              includeSubfolders={includeSubfolders}
             />
 
             {/* Step 3: Destination Folder & Organize Button */}
@@ -393,7 +341,6 @@ export function App() {
               existingFolders={existingFolders}
               onExecuteMove={handleExecuteMove}
               isExecuting={isExecuting}
-              currentLocationName={currentFolderName}
             />
           </main>
         )}
@@ -439,5 +386,3 @@ export function App() {
     </div>
   );
 }
-
-export default App;

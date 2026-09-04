@@ -1,13 +1,10 @@
 @echo off
 setlocal
-title Windows Folder & Desktop File Organizer
+title Windows Desktop File Organizer
 cd /d "%~dp0"
 
 echo ========================================================
-echo   Launching Windows Folder & Desktop File Organizer...
-echo   App Folder:       %~dp0
-for %%I in ("%~dp0..") do set "PARENT_DIR=%%~fI"
-echo   Targeting Parent: %PARENT_DIR%
+echo       Launching Windows Desktop File Organizer...
 echo ========================================================
 echo.
 

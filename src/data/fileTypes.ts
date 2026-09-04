@@ -84,14 +84,3 @@ export function detectCategory(extension: string): FileCategoryKey {
   }
   return 'custom';
 }
-
-export function getCategoryExtensions(category: FileCategoryKey, customExtensions: string[] = []): string[] {
-  if (category === 'custom') {
-    return customExtensions.map((e) => e.toLowerCase().replace(/^\./, ''));
-  }
-  if (category === 'all') {
-    return ['*'];
-  }
-  const cat = FILE_CATEGORIES.find((c) => c.id === category);
-  return cat ? cat.extensions : [];
-}

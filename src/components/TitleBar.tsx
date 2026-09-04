@@ -40,7 +40,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             <FolderArchive className="w-3.5 h-3.5" />
           </div>
           <span className="font-semibold text-xs tracking-tight text-neutral-800 dark:text-neutral-100">
-            Folder & Desktop File Organizer
+            Desktop File Organizer
           </span>
           <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
             Windows 11

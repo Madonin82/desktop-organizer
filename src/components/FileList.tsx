@@ -24,7 +24,6 @@ interface FileListProps {
   onToggleItem: (id: string) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
-  includeSubfolders?: boolean;
 }
 
 export const FileList: React.FC<FileListProps> = ({
@@ -33,33 +32,22 @@ export const FileList: React.FC<FileListProps> = ({
   onToggleItem,
   onSelectAll,
   onDeselectAll,
-  includeSubfolders = true,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter items that are not yet organized into target cleanup folders
-  const unorganizedItems = items.filter((i) => {
-    if (i.destinationFolder || (i.folderPath && i.folderPath !== '')) return false;
-    if (!includeSubfolders && i.sourceSubfolder) return false;
-    return true;
-  });
+  // Filter items that belong to the root desktop
+  const desktopItems = items.filter((i) => !i.folderPath || i.folderPath === '');
 
   // Filter by search term
-  const displayedItems = unorganizedItems.filter((item) => {
+  const displayedItems = desktopItems.filter((item) => {
     if (!searchTerm) return true;
-    const matchName = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchFolder = item.sourceSubfolder
-      ? item.sourceSubfolder.toLowerCase().includes(searchTerm.toLowerCase())
-      : false;
-    return matchName || matchFolder;
+    return item.name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   const selectedCount = displayedItems.filter((i) => i.selected).length;
   const totalSelectedSize = displayedItems
     .filter((i) => i.selected)
     .reduce((acc, curr) => acc + curr.size, 0);
-
-  const subfolderItemsCount = displayedItems.filter((i) => !!i.sourceSubfolder).length;
 
   const getFileIcon = (item: DesktopItem) => {
     switch (item.iconType) {
@@ -113,11 +101,6 @@ export const FileList: React.FC<FileListProps> = ({
                   ({formatBytes(totalSelectedSize)})
                 </span>
               )}
-              {subfolderItemsCount > 0 && includeSubfolders && (
-                <span className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-900/50">
-                  Includes {subfolderItemsCount} nested in sub-folders
-                </span>
-              )}
             </div>
           </div>
         </div>
@@ -152,7 +135,7 @@ export const FileList: React.FC<FileListProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search file or folder..."
+              placeholder="Search file name..."
               className="w-full pl-8 pr-2.5 py-1 rounded text-xs bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -165,10 +148,10 @@ export const FileList: React.FC<FileListProps> = ({
           <div className="p-12 text-center text-neutral-400">
             <Folder className="w-12 h-12 mx-auto mb-2 opacity-30" />
             <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-              No matching files found in this location
+              No matching files on Desktop
             </p>
             <p className="text-xs text-neutral-500 mt-1">
-              Select another file type above or reset the demo to test organization.
+              Select another file type above or reset the demo to populate items.
             </p>
           </div>
         ) : (
@@ -178,7 +161,7 @@ export const FileList: React.FC<FileListProps> = ({
                 <th className="w-10 px-3 py-2 text-center">
                   <span className="sr-only">Select</span>
                 </th>
-                <th className="px-3 py-2">Name & Source Path</th>
+                <th className="px-3 py-2">Name</th>
                 <th className="w-24 px-3 py-2">Type</th>
                 <th className="w-24 px-3 py-2 text-right">Size</th>
                 <th className="w-36 px-3 py-2 hidden sm:table-cell">Modified</th>
@@ -213,30 +196,20 @@ export const FileList: React.FC<FileListProps> = ({
                       </button>
                     </td>
 
-                    {/* File icon + name + subfolder badge */}
+                    {/* File icon + name */}
                     <td className="px-3 py-2">
-                      <div className="flex items-center gap-2 max-w-[280px] sm:max-w-md">
+                      <div className="flex items-center gap-2 max-w-[280px] sm:max-w-md truncate">
                         <div className="shrink-0">{getFileIcon(item)}</div>
-                        <div className="flex flex-col min-w-0">
-                          <span
-                            className={`truncate font-medium ${
-                              isSelected
-                                ? 'text-blue-950 dark:text-blue-200'
-                                : 'text-neutral-800 dark:text-neutral-200'
-                            }`}
-                            title={item.name}
-                          >
-                            {item.name}
-                          </span>
-                          {item.sourceSubfolder && (
-                            <span
-                              className="text-[10px] text-neutral-400 dark:text-neutral-500 font-mono truncate"
-                              title={`Found in subfolder: ${item.sourceSubfolder}`}
-                            >
-                              📁 {item.sourceSubfolder}
-                            </span>
-                          )}
-                        </div>
+                        <span
+                          className={`truncate font-medium ${
+                            isSelected
+                              ? 'text-blue-950 dark:text-blue-200'
+                              : 'text-neutral-800 dark:text-neutral-200'
+                          }`}
+                          title={item.name}
+                        >
+                          {item.name}
+                        </span>
                       </div>
                     </td>
 
