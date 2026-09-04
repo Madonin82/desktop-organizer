@@ -2,16 +2,16 @@
 
 A fast, visual tool to organize your Windows files, icons, and shortcuts into designated folders by file type.
 
-### 🌟 Portable "Drop-In Anywhere" Mode
-You can make a copy of this program directory and **drop it into ANY folder** (e.g. `Downloads`, `External Drive`, `Projects`, `Camera Dump`, or your `Desktop`). 
+### 🌟 Portable "Drop-In" Mode (Targets Parent Folder)
+You can drop this entire application folder into **ANY folder you want cleaned** (for example, drop it into `C:\clean these up\`).
 
-When launched, it automatically:
-- Scans its **current location** and **all sub-folders** (recursive scanning)
-- Identifies and auto-selects matching file types across nested folders
-- Cleans them up and organizes them into neat destination folders right in that location
-- Protects its own program files from being moved
-- Safely handles filename collisions (auto-numbers duplicates instead of overwriting)
-- Provides 1-click **Undo** to restore files back to their exact original sub-folders
+When you launch `Organizer-Desktop-App.bat`:
+- It **automatically targets the parent folder** it was dropped into (`C:\clean these up\`, one level up in hierarchy)
+- It **safely protects and excludes itself** (its own files, scripts, and folder will NEVER be moved or touched)
+- It scans the parent folder and **all sub-folders** (recursive scanning)
+- It groups and organizes files cleanly into destination folders (e.g. `C:\clean these up\Pictures\`)
+- Safely handles duplicate filenames (auto-numbers duplicates instead of overwriting)
+- Provides 1-click **Undo** to restore files back to their exact original locations
 
 ---
 

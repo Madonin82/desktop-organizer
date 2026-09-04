@@ -3,11 +3,21 @@ Add-Type -AssemblyName System.Drawing
 
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
-# Determine initial target folder:
-# Default to current location where script was launched ($PSScriptRoot), or current directory
-$initialPath = $PSScriptRoot
-if ([string]::IsNullOrWhiteSpace($initialPath)) {
-    $initialPath = (Get-Location).Path
+# Determine App Folder and Target Parent Folder:
+# The user drops the entire app folder into the messy folder they want organized (e.g. C:\clean these up\Desktop-Organizer).
+# The app starts by targeting the parent folder it was dropped into (C:\clean these up\), one level up in hierarchy.
+$script:AppDirectory = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($script:AppDirectory)) {
+    $script:AppDirectory = (Get-Location).Path
+}
+$script:AppDirectory = [System.IO.Path]::GetFullPath($script:AppDirectory).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+
+# Target the parent folder containing the app folder
+$parentDir = Split-Path -Parent $script:AppDirectory
+if (-not [string]::IsNullOrWhiteSpace($parentDir) -and (Test-Path -LiteralPath $parentDir)) {
+    $initialPath = [System.IO.Path]::GetFullPath($parentDir)
+} else {
+    $initialPath = $script:AppDirectory
 }
 
 # Global State
@@ -103,12 +113,24 @@ function Format-FileSize([long]$Bytes) {
 
 # Helper: Check if a path is inside an excluded directory
 function Test-IsExcludedFile($fileItem, $destinationPath) {
+    $fullPath = $fileItem.FullName
+
+    # CRITICAL: Exclude the entire app folder and all its contents!
+    # Because the app folder is located inside the parent folder being organized,
+    # none of the app's files or subdirectories should ever be organized.
+    if (-not [string]::IsNullOrWhiteSpace($script:AppDirectory)) {
+        $appPrefix = $script:AppDirectory + [System.IO.Path]::DirectorySeparatorChar
+        if ($fullPath.StartsWith($appPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or
+            $fullPath -ieq $script:AppDirectory) {
+            return $true
+        }
+    }
+
     # Check filename exclusion
     if ($script:ExcludedFileNames -contains $fileItem.Name.ToLower()) {
         return $true
     }
     # Check directory segment exclusion
-    $fullPath = $fileItem.FullName
     foreach ($dir in $script:ExcludedDirNames) {
         $pattern = [regex]::Escape([System.IO.Path]::DirectorySeparatorChar + $dir + [System.IO.Path]::DirectorySeparatorChar)
         $patternEnd = [regex]::Escape([System.IO.Path]::DirectorySeparatorChar + $dir) + "$"
@@ -216,7 +238,7 @@ $chkSubfolders.Size = New-Object System.Drawing.Size(340, 24)
 $grpStep1.Controls.Add($chkSubfolders)
 
 $btnUseCurrentLocation = New-Object System.Windows.Forms.Button
-$btnUseCurrentLocation.Text = "Reset to App Folder"
+$btnUseCurrentLocation.Text = "Parent Folder"
 $btnUseCurrentLocation.Font = New-Object System.Drawing.Font("Segoe UI", 8)
 $btnUseCurrentLocation.Location = New-Object System.Drawing.Point(520, 25)
 $btnUseCurrentLocation.Size = New-Object System.Drawing.Size(130, 29)
@@ -331,7 +353,17 @@ function Update-FolderFiles {
     $chkListFiles.Items.Clear()
     $script:CurrentFiles = @()
 
-    $lblSubtitle.Text = "Active: $script:TargetRootPath"
+    $isParentOfApp = $false
+    if (-not [string]::IsNullOrWhiteSpace($script:AppDirectory) -and $script:AppDirectory.StartsWith($script:TargetRootPath, [System.StringComparison]::OrdinalIgnoreCase) -and $script:AppDirectory -ine $script:TargetRootPath) {
+        $isParentOfApp = $true
+    }
+
+    if ($isParentOfApp) {
+        $appName = Split-Path -Leaf $script:AppDirectory
+        $lblSubtitle.Text = "Targeting Parent: $script:TargetRootPath`n[Protected: \$appName\ excluded]"
+    } else {
+        $lblSubtitle.Text = "Active: $script:TargetRootPath"
+    }
 
     $selectedCategory = $script:Categories[$cboType.SelectedIndex]
     $txtTargetFolder.Text = $selectedCategory.Folder
@@ -405,7 +437,7 @@ $btnRefresh.Add_Click({
     Update-FolderFiles
 })
 
-# Reset to App Folder
+# Reset to Parent Folder
 $btnUseCurrentLocation.Add_Click({
     $script:TargetRootPath = $initialPath
     Update-FolderFiles
@@ -562,6 +594,13 @@ $btnOrganize.Add_Click({
         $subDirs = Get-ChildItem -Path $script:TargetRootPath -Directory -Recurse -ErrorAction SilentlyContinue | Sort-Object -Property FullName -Descending
         foreach ($dir in $subDirs) {
             if ($dir.FullName.StartsWith($destinationPath, [System.StringComparison]::OrdinalIgnoreCase)) { continue }
+            # NEVER delete or touch the app folder or anything inside it!
+            if (-not [string]::IsNullOrWhiteSpace($script:AppDirectory)) {
+                $appPrefix = $script:AppDirectory + [System.IO.Path]::DirectorySeparatorChar
+                if ($dir.FullName.StartsWith($appPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or $dir.FullName -ieq $script:AppDirectory) {
+                    continue
+                }
+            }
             # Do not touch excluded dirs
             $isExcludedDir = $false
             foreach ($ex in $script:ExcludedDirNames) {

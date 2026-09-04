@@ -1,15 +1,24 @@
 import { FileCategoryKey } from '../types';
 import { FILE_CATEGORIES } from '../data/fileTypes';
 
+export type ScriptTargetMode = 'parent' | 'current' | 'desktop';
+
 export function generateBatchScript(
   categoryKey: FileCategoryKey,
   targetFolderName: string,
   customExtensions: string[] = [],
   includeSubfolders = true,
-  isCurrentLocationMode = true
+  targetMode: ScriptTargetMode | boolean = 'parent'
 ): string {
+  const mode: ScriptTargetMode =
+    typeof targetMode === 'boolean'
+      ? targetMode
+        ? 'parent'
+        : 'desktop'
+      : targetMode;
+
   const cleanTarget = targetFolderName.replace(/^Desktop[\\/]/i, '').replace(/^[\\/]+|[\\/]+$/g, '');
-  
+
   let extensions: string[] = [];
   if (categoryKey === 'custom') {
     extensions = customExtensions;
@@ -20,15 +29,37 @@ export function generateBatchScript(
     extensions = cat ? cat.extensions : [];
   }
 
+  let dirSetup = '';
+  if (mode === 'parent') {
+    dirSetup =
+      'set "APP_DIR=%~dp0"\r\n' +
+      'set "APP_DIR=%APP_DIR:~0,-1%"\r\n' +
+      ':: Target the parent folder containing the dropped app folder\r\n' +
+      'for %%I in ("%~dp0..") do set "WORK_DIR=%%~fI"';
+  } else if (mode === 'current') {
+    dirSetup =
+      'set "APP_DIR=%~dp0"\r\n' +
+      'set "APP_DIR=%APP_DIR:~0,-1%"\r\n' +
+      'set "WORK_DIR=%APP_DIR%"';
+  } else {
+    dirSetup =
+      'set "APP_DIR=%~dp0"\r\n' +
+      'set "APP_DIR=%APP_DIR:~0,-1%"\r\n' +
+      'set "WORK_DIR=%USERPROFILE%\\Desktop"';
+  }
+
   let moveCommands = '';
   if (includeSubfolders) {
     moveCommands = extensions
       .map(
         (ext) =>
           `for /r "%WORK_DIR%" %%F in (*.${ext}) do (\r\n` +
-          `    if /i not "%%~dpF"=="%TARGET_DIR%\\" (\r\n` +
+          `    set "FILE_DIR=%%~dpF"\r\n` +
+          `    if /i not "!FILE_DIR!"=="%TARGET_DIR%\\" (\r\n` +
           `        if /i not "%%~nxF"=="%~nx0" (\r\n` +
-          `            move /y "%%F" "%TARGET_DIR%\\" >nul 2>&1\r\n` +
+          `            echo "!FILE_DIR!" | findstr /i /c:"%APP_DIR%" >nul || (\r\n` +
+          `                move /y "%%F" "%TARGET_DIR%\\" >nul 2>&1\r\n` +
+          `            )\r\n` +
           `        )\r\n` +
           `    )\r\n` +
           `)`
@@ -36,13 +67,14 @@ export function generateBatchScript(
       .join('\r\n\r\n');
   } else {
     moveCommands = extensions
-      .map((ext) => `for %%F in ("%WORK_DIR%\\*.${ext}") do move /y "%%F" "%TARGET_DIR%\\" >nul 2>&1`)
+      .map(
+        (ext) =>
+          `for %%F in ("%WORK_DIR%\\*.${ext}") do (\r\n` +
+          `    if /i not "%%~nxF"=="%~nx0" move /y "%%F" "%TARGET_DIR%\\" >nul 2>&1\r\n` +
+          `)`
+      )
       .join('\r\n');
   }
-
-  const dirSetup = isCurrentLocationMode
-    ? 'set "WORK_DIR=%~dp0"\r\nset "WORK_DIR=%WORK_DIR:~0,-1%"'
-    : 'set "WORK_DIR=%USERPROFILE%\\Desktop"';
 
   return `@echo off
 setlocal enabledelayedexpansion
@@ -57,8 +89,9 @@ echo.
 ${dirSetup}
 set "TARGET_DIR=%WORK_DIR%\\${cleanTarget}"
 
-echo Working Directory: %WORK_DIR%
-echo Target Folder:     %TARGET_DIR%
+echo App Folder:        %APP_DIR% (Protected - excluded from moves)
+echo Target Directory:  %WORK_DIR%
+echo Destination:       %TARGET_DIR%
 echo Recursive Scan:    ${includeSubfolders ? 'YES (All sub-folders included)' : 'NO (Top-level only)'}
 echo Extensions:        ${extensions.map((e) => '.' + e).join(', ')}
 echo.
@@ -87,10 +120,17 @@ export function generatePowerShellScript(
   targetFolderName: string,
   customExtensions: string[] = [],
   includeSubfolders = true,
-  isCurrentLocationMode = true
+  targetMode: ScriptTargetMode | boolean = 'parent'
 ): string {
+  const mode: ScriptTargetMode =
+    typeof targetMode === 'boolean'
+      ? targetMode
+        ? 'parent'
+        : 'desktop'
+      : targetMode;
+
   const cleanTarget = targetFolderName.replace(/^Desktop[\\/]/i, '').replace(/^[\\/]+|[\\/]+$/g, '');
-  
+
   let extensions: string[] = [];
   if (categoryKey === 'custom') {
     extensions = customExtensions;
@@ -103,18 +143,34 @@ export function generatePowerShellScript(
 
   const extArray = extensions.map((ext) => `'*.${ext}'`).join(', ');
 
-  const rootPathCode = isCurrentLocationMode
-    ? `$WorkDir = $PSScriptRoot\r\nif ([string]::IsNullOrWhiteSpace($WorkDir)) { $WorkDir = (Get-Location).Path }`
-    : `$WorkDir = [Environment]::GetFolderPath("Desktop")`;
+  let rootPathCode = '';
+  if (mode === 'parent') {
+    rootPathCode =
+      `# Target the parent folder containing the app folder\r\n` +
+      `$ParentDir = Split-Path -Parent $AppDir\r\n` +
+      `if (-not [string]::IsNullOrWhiteSpace($ParentDir) -and (Test-Path -LiteralPath $ParentDir)) {\r\n` +
+      `    $WorkDir = [System.IO.Path]::GetFullPath($ParentDir)\r\n` +
+      `} else {\r\n` +
+      `    $WorkDir = $AppDir\r\n` +
+      `}`;
+  } else if (mode === 'current') {
+    rootPathCode = `$WorkDir = $AppDir`;
+  } else {
+    rootPathCode = `$WorkDir = [Environment]::GetFolderPath("Desktop")`;
+  }
 
   const recurseFlag = includeSubfolders ? '-Recurse' : '';
 
   return `# ================================================================
 # Windows Folder & Desktop File Organizer (PowerShell)
-# Drop into any folder or run on Desktop
+# Targets parent folder by default (when dropped inside target folder)
 # ================================================================
 
 $Host.UI.RawUI.WindowTitle = "Folder & Desktop File Organizer"
+
+$AppDir = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($AppDir)) { $AppDir = (Get-Location).Path }
+$AppDir = [System.IO.Path]::GetFullPath($AppDir).TrimEnd('\\', '/')
 
 ${rootPathCode}
 $TargetFolderName = "${cleanTarget}"
@@ -123,7 +179,8 @@ $TargetDir = Join-Path $WorkDir $TargetFolderName
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host "         WINDOWS FOLDER & DESKTOP FILE ORGANIZER" -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
-Write-Host "Working Directory: $WorkDir" -ForegroundColor Gray
+Write-Host "App Folder:        $AppDir (Protected - Excluded from moves)" -ForegroundColor Gray
+Write-Host "Target Directory:  $WorkDir" -ForegroundColor Gray
 Write-Host "Destination:       $TargetDir" -ForegroundColor Gray
 Write-Host "Recursive Scan:    ${includeSubfolders ? 'YES (All sub-folders included)' : 'NO (Root only)'}" -ForegroundColor Gray
 Write-Host "Extensions:        ${extensions.map((e) => '.' + e).join(', ')}" -ForegroundColor Gray
@@ -141,11 +198,19 @@ $MovedCount = 0
 foreach ($Pattern in $Patterns) {
     $MatchingFiles = Get-ChildItem -Path $WorkDir ${recurseFlag} -Filter $Pattern -File -ErrorAction SilentlyContinue
     foreach ($File in $MatchingFiles) {
+        # NEVER organize the app folder itself or any file inside it!
+        if (-not [string]::IsNullOrWhiteSpace($AppDir)) {
+            $AppPrefix = $AppDir + [System.IO.Path]::DirectorySeparatorChar
+            if ($File.FullName.StartsWith($AppPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or $File.FullName -ieq $AppDir) {
+                continue
+            }
+        }
+
         # Avoid moving self or files already in target folder
         if ($ExcludedNames -contains $File.Name) { continue }
         if ($File.FullName.StartsWith($TargetDir, [System.StringComparison]::OrdinalIgnoreCase)) { continue }
 
-        # Collision avoidance
+        # Collision avoidance: If target file already exists, auto-number
         $DestName = $File.Name
         $DestPath = Join-Path $TargetDir $DestName
         $Counter = 1

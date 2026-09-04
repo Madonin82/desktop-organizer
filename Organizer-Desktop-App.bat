@@ -5,7 +5,9 @@ cd /d "%~dp0"
 
 echo ========================================================
 echo   Launching Windows Folder & Desktop File Organizer...
-echo   Working Location: %~dp0
+echo   App Folder:       %~dp0
+for %%I in ("%~dp0..") do set "PARENT_DIR=%%~fI"
+echo   Targeting Parent: %PARENT_DIR%
 echo ========================================================
 echo.
 

@@ -111,7 +111,7 @@ export const SourceFolderSelector: React.FC<SourceFolderSelectorProps> = ({
             {isRealFolder ? <FolderTree className="w-5 h-5" /> : <FolderGit2 className="w-5 h-5" />}
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs uppercase tracking-wider font-semibold text-neutral-400 dark:text-neutral-500">
                 Target Folder Location
               </span>
@@ -122,15 +122,20 @@ export const SourceFolderSelector: React.FC<SourceFolderSelectorProps> = ({
                     : 'bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
                 }`}
               >
-                {isRealFolder ? 'Connected Local Directory' : 'Drop-in Target Location'}
+                {isRealFolder ? 'Connected Local Directory' : 'Targeting Parent Folder (1 level up)'}
+              </span>
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10.5px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                🛡️ App Folder Excluded
               </span>
             </div>
-            <div className="flex items-baseline gap-2 mt-0.5">
+            <div className="flex flex-wrap items-baseline gap-2 mt-0.5">
               <span className="font-semibold text-sm sm:text-base text-neutral-900 dark:text-neutral-100">
-                {isRealFolder ? `C:\\...\\${currentFolderName}` : `C:\\TargetFolder\\${currentFolderName}`}
+                {isRealFolder
+                  ? `C:\\...\\${currentFolderName}`
+                  : `C:\\clean these up\\`}
               </span>
               <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                ({unorganizedCount} files to clean up)
+                ({unorganizedCount} files in parent & subfolders)
               </span>
             </div>
           </div>

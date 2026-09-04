@@ -20,7 +20,7 @@ export function App() {
   const [includeSubfolders, setIncludeSubfolders] = useState<boolean>(true);
 
   // Folder & Environment State
-  const [currentFolderName, setCurrentFolderName] = useState<string>('Current Folder');
+  const [currentFolderName, setCurrentFolderName] = useState<string>('clean these up');
   const [isRealFolder, setIsRealFolder] = useState<boolean>(false);
   const [rootDirHandle, setRootDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
 
