@@ -6,7 +6,9 @@ import {
   Check,
   Code2,
   FileCode,
-  Sparkles,
+  FolderTree,
+  Laptop,
+  FolderGit2,
   Info,
 } from 'lucide-react';
 import { FileCategoryKey } from '../types';
@@ -25,12 +27,26 @@ export const WindowsScriptModal: React.FC<WindowsScriptModalProps> = ({
 }) => {
   const [scriptType, setScriptType] = useState<'batch' | 'powershell'>('batch');
   const [copied, setCopied] = useState(false);
+  const [isDropInMode, setIsDropInMode] = useState(true);
+  const [includeSubfolders, setIncludeSubfolders] = useState(true);
 
-  const batchCode = generateBatchScript(selectedCategory, targetFolderName, customExtensions);
-  const powershellCode = generatePowerShellScript(selectedCategory, targetFolderName, customExtensions);
+  const batchCode = generateBatchScript(
+    selectedCategory,
+    targetFolderName,
+    customExtensions,
+    includeSubfolders,
+    isDropInMode
+  );
+  const powershellCode = generatePowerShellScript(
+    selectedCategory,
+    targetFolderName,
+    customExtensions,
+    includeSubfolders,
+    isDropInMode
+  );
 
   const currentCode = scriptType === 'batch' ? batchCode : powershellCode;
-  const fileName = scriptType === 'batch' ? 'Organize-Desktop.bat' : 'Organize-Desktop.ps1';
+  const fileName = scriptType === 'batch' ? 'Organize-Folder.bat' : 'Organize-Folder.ps1';
 
   const handleCopy = async () => {
     try {
@@ -66,15 +82,14 @@ export const WindowsScriptModal: React.FC<WindowsScriptModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-sm sm:text-base text-white">
-                  Windows Desktop 1-Click Script Generator
+                  Portable Windows Organizer Scripts
                 </h3>
                 <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Ready to Run
+                  Drop-in Ready
                 </span>
               </div>
               <p className="text-xs text-neutral-400 mt-1 max-w-xl">
-                Prefer running directly from your Windows desktop? Download this pre-configured script.
-                Double-click it on your desktop to organize your items anytime with native Windows speed!
+                Drop this script or the program folder into <strong>any directory</strong>. It scans the current folder and all sub-folders to clean up and group files with native Windows speed!
               </p>
             </div>
           </div>
@@ -101,6 +116,45 @@ export const WindowsScriptModal: React.FC<WindowsScriptModalProps> = ({
               <span>Download {fileName}</span>
             </button>
           </div>
+        </div>
+
+        {/* Script Configuration Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-neutral-800/60 border border-neutral-700/80 text-xs">
+          <div className="flex items-center gap-3">
+            <span className="text-neutral-400 font-medium">Target Mode:</span>
+            <div className="inline-flex rounded-lg bg-neutral-900 p-0.5 border border-neutral-700">
+              <button
+                type="button"
+                onClick={() => setIsDropInMode(true)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  isDropInMode ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <FolderGit2 className="w-3.5 h-3.5" />
+                <span>Any Dropped Folder (%~dp0)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDropInMode(false)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  !isDropInMode ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Laptop className="w-3.5 h-3.5" />
+                <span>Windows Desktop</span>
+              </button>
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer text-neutral-300 font-medium">
+            <input
+              type="checkbox"
+              checked={includeSubfolders}
+              onChange={(e) => setIncludeSubfolders(e.target.checked)}
+              className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-neutral-600"
+            />
+            <span>Include all sub-folders (Recursive Scan)</span>
+          </label>
         </div>
 
         {/* Script Type Switcher & Code Box */}
@@ -149,28 +203,21 @@ export const WindowsScriptModal: React.FC<WindowsScriptModalProps> = ({
         <div className="p-4 rounded-xl bg-neutral-800/40 border border-neutral-800 text-xs text-neutral-300 space-y-2">
           <div className="flex items-center gap-1.5 font-semibold text-neutral-200">
             <Info className="w-4 h-4 text-blue-400" />
-            <span>How to run this on your Windows PC:</span>
+            <span>How to use the drop-in folder organizer:</span>
           </div>
           <div className="p-3 bg-blue-950/40 border border-blue-800/60 rounded-lg text-blue-200 mb-2">
-            <p className="font-semibold mb-1">⚡ Instant Windows Desktop App in your downloaded GitHub folder:</p>
+            <p className="font-semibold mb-1">⚡ Instant Full GUI App (`Organizer-Desktop-App.bat`):</p>
             <p className="text-neutral-300 text-[11.5px] leading-relaxed">
-              If you downloaded this project from GitHub, simply double-click <strong>Organizer-Desktop-App.bat</strong> right inside the folder! It launches the native Windows GUI app directly on your machine without requiring Node.js or npm.
+              Copy this program directory into <strong>any folder</strong> (or keep a copy in your Downloads, external drives, or Desktop). Double-click <strong>Organizer-Desktop-App.bat</strong> to open the full Windows graphical window. It automatically targets its current folder, scans all sub-folders, and cleans them up with a full Undo safeguard!
             </p>
           </div>
           <ol className="list-decimal list-inside space-y-1 text-neutral-400 pl-1">
             <li>
-              Click <strong className="text-white">Download {fileName}</strong> above.
+              Copy the program folder (or download <strong className="text-white">{fileName}</strong>) into the messy folder you want to organize.
             </li>
-            <li>Move or save the file directly to your Desktop.</li>
+            <li>Double-click the script or <strong>Organizer-Desktop-App.bat</strong>.</li>
             <li>
-              {scriptType === 'batch' ? (
-                <>Double-click <strong className="text-white">{fileName}</strong> to run it.</>
-              ) : (
-                <>Right-click <strong className="text-white">{fileName}</strong> and select <strong className="text-white">"Run with PowerShell"</strong>.</>
-              )}
-            </li>
-            <li>
-              All files matching your selected category will be automatically moved into your chosen destination folder.
+              It scans that folder and all its subfolders, groups the files by your chosen category, and moves them safely into clean subfolders right in that directory!
             </li>
           </ol>
         </div>

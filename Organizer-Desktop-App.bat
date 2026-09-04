@@ -1,10 +1,11 @@
 @echo off
 setlocal
-title Windows Desktop File Organizer
+title Windows Folder & Desktop File Organizer
 cd /d "%~dp0"
 
 echo ========================================================
-echo       Launching Windows Desktop File Organizer...
+echo   Launching Windows Folder & Desktop File Organizer...
+echo   Working Location: %~dp0
 echo ========================================================
 echo.
 

@@ -57,6 +57,30 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     selected: false,
     iconType: 'image',
   },
+  {
+    id: 'img-sub-1',
+    name: 'Logo_draft_red.png',
+    extension: 'png',
+    size: 780000,
+    modifiedAt: '2026-08-04 14:10',
+    category: 'images',
+    folderPath: '',
+    sourceSubfolder: 'Drafts/BrandAssets',
+    selected: false,
+    iconType: 'image',
+  },
+  {
+    id: 'img-sub-2',
+    name: 'Vacation_Sunset_042.jpg',
+    extension: 'jpg',
+    size: 3200000,
+    modifiedAt: '2026-07-18 19:30',
+    category: 'images',
+    folderPath: '',
+    sourceSubfolder: 'Unsorted Camera Backup',
+    selected: false,
+    iconType: 'image',
+  },
 
   // Shortcuts & Icons ("icons and stuff")
   {
@@ -170,6 +194,18 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     folderPath: '',
     selected: false,
     iconType: 'doc',
+  },
+  {
+    id: 'doc-sub-1',
+    name: 'Client_Contract_Signed.pdf',
+    extension: 'pdf',
+    size: 680000,
+    modifiedAt: '2026-08-10 11:15',
+    category: 'documents',
+    folderPath: '',
+    sourceSubfolder: 'Work_Old_Downloads',
+    selected: false,
+    iconType: 'pdf',
   },
 
   // Installers & Executables

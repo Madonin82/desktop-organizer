@@ -29,9 +29,12 @@ export interface DesktopItem {
   category: FileCategoryKey;
   isFolder?: boolean;
   folderPath?: string; // e.g. "" (root Desktop) or "Images"
+  sourceSubfolder?: string; // original nested path if found in subfolder
+  destinationFolder?: string; // cleanup folder where item was moved
   selected?: boolean;
   // Browser FileSystemHandle if acquired from real folder
   fileHandle?: FileSystemFileHandle;
+  parentDirHandle?: FileSystemDirectoryHandle;
   // Icon visual metadata
   iconType?: 'image' | 'pdf' | 'doc' | 'shortcut' | 'exe' | 'zip' | 'audio' | 'video' | 'code' | 'folder' | 'generic';
 }
