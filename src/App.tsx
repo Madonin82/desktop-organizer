@@ -18,12 +18,26 @@ import { DesktopItem, FileCategoryKey, MoveOperation, ViewMode } from './types';
 import { INITIAL_MOCK_DESKTOP_ITEMS } from './data/mockDesktop';
 import { FILE_CATEGORIES } from './data/fileTypes';
 import { moveRealFile } from './utils/fileSystem';
+import { useDisplayResolution } from './utils/useDisplayResolution';
 
 export default function App() {
   const [items, setItems] = useState<DesktopItem[]>(INITIAL_MOCK_DESKTOP_ITEMS);
   const [rootDirHandle, setRootDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [isRealFolder, setIsRealFolder] = useState<boolean>(false);
   const [currentFolderName, setCurrentFolderName] = useState<string>('Desktop');
+
+  // Display resolution and 4K scaling engine
+  const {
+    displayInfo,
+    scale,
+    isAuto,
+    setScale,
+    setAuto,
+    toggleFullscreen,
+    increaseScale,
+    decreaseScale,
+    resetScale,
+  } = useDisplayResolution();
 
   const [selectedCategory, setSelectedCategory] = useState<FileCategoryKey>('images');
   const [customExtensions, setCustomExtensions] = useState<string[]>([]);
@@ -289,8 +303,19 @@ export default function App() {
     return items.filter((i) => i.selected && (!i.folderPath || i.folderPath === '')).length;
   }, [items]);
 
+  const appContainerStyle: React.CSSProperties = {
+    zoom: scale,
+    width: scale === 1 ? '100vw' : `${100 / scale}vw`,
+    height: scale === 1 ? '100vh' : `${100 / scale}vh`,
+  };
+
   return (
-    <div className={`flex flex-col h-screen w-screen overflow-hidden ${isDark ? 'dark bg-neutral-950 text-neutral-100' : 'bg-neutral-100 text-neutral-900'}`}>
+    <div
+      style={appContainerStyle}
+      className={`flex flex-col overflow-hidden transition-colors ${
+        isDark ? 'dark bg-neutral-950 text-neutral-100' : 'bg-neutral-100 text-neutral-900'
+      }`}
+    >
       {/* Windows 11 Acrylic App Frame */}
       <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-neutral-900 shadow-2xl transition-colors">
         {/* Title Bar & Top Navigation */}
@@ -300,6 +325,15 @@ export default function App() {
           isDark={isDark}
           setIsDark={setIsDark}
           totalItemsCount={items.length}
+          displayInfo={displayInfo}
+          scale={scale}
+          isAuto={isAuto}
+          setScale={setScale}
+          setAuto={setAuto}
+          toggleFullscreen={toggleFullscreen}
+          increaseScale={increaseScale}
+          decreaseScale={decreaseScale}
+          resetScale={resetScale}
         />
 
         {/* Source Folder Header */}

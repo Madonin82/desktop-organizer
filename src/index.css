@@ -1,1 +1,30 @@
 @import "tailwindcss";
+
+/* 4K Ultra-Sharp & High-DPI Display Optimizations */
+:root {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #0f172a;
+}
+
+/* Ensure vector icons and text maintain razor-sharp edges on 4K */
+svg {
+  shape-rendering: geometricPrecision;
+  transform: translateZ(0);
+}
+
+/* Subpixel font clarity for high-DPI monitors */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

@@ -32,6 +32,8 @@ if not exist "node_modules\" (
 )
 
 echo [*] Starting local web app server...
-echo [*] Opening your browser to http://localhost:3000
-start "" "http://localhost:3000"
+echo [*] Opening browser at native 4K display resolution...
+
+:: Launch browser in dedicated High-DPI mode if Edge or Chrome is available
+start "" cmd /c "timeout /t 2 >nul & (where msedge >nul 2>nul && start msedge --app="http://localhost:3000" --high-dpi-support=1 || (where chrome >nul 2>nul && start chrome --app="http://localhost:3000" --high-dpi-support=1 || start "" "http://localhost:3000"))"
 call npm run dev

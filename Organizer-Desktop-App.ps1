@@ -1,3 +1,15 @@
+# High-DPI Awareness for Windows 10 & 11 (resolves blurry/pixelated window on 4K displays)
+try {
+    # Per-Monitor V2 DPI awareness (Windows 10 1703+)
+    $shcore = Add-Type -MemberDefinition '[DllImport("Shcore.dll")] public static extern int SetProcessDpiAwareness(int awareness);' -Name 'ShcoreDpi' -Namespace 'DpiUtil' -PassThru -ErrorAction SilentlyContinue
+    if ($shcore) { [void]$shcore::SetProcessDpiAwareness(2) }
+} catch {
+    try {
+        $user32 = Add-Type -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();' -Name 'User32Dpi' -Namespace 'DpiUtil' -PassThru -ErrorAction SilentlyContinue
+        if ($user32) { [void]$user32::SetProcessDPIAware() }
+    } catch {}
+}
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -68,6 +80,7 @@ function Format-FileSize([long]$Bytes) {
 # Main Form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Windows Desktop File Organizer"
+$form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Font
 $form.Size = New-Object System.Drawing.Size(680, 640)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = [System.Drawing.Color]::FromArgb(248, 249, 250)

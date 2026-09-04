@@ -122,6 +122,9 @@ export const DesktopView: React.FC<DesktopViewProps> = ({
           <span className="text-white/70">
             {rootItems.length} loose files on desktop • {folders.length} organized folders
           </span>
+          <span className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/10 text-blue-300 border border-white/15">
+            4K Vector Sharp
+          </span>
         </div>
 
         <button
@@ -136,7 +139,7 @@ export const DesktopView: React.FC<DesktopViewProps> = ({
 
       {/* Desktop Grid Canvas */}
       <div className="relative z-10 flex-1 p-6 overflow-y-auto">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 sm:gap-6 auto-rows-max">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-4 sm:gap-6 auto-rows-max">
           {/* Recycle Bin (System Icon) */}
           <div className="group flex flex-col items-center text-center cursor-default p-2 rounded-lg hover:bg-white/10 transition-colors">
             <div className="w-10 h-10 rounded-lg bg-neutral-700/60 border border-white/20 flex items-center justify-center text-white/80 shadow-md">
