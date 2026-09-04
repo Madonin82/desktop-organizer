@@ -14,20 +14,26 @@ export function formatBytes(bytes: number, decimals = 1): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-export async function pickRealDirectory(): Promise<{
+export async function pickRealDirectory(
+  startInHint?: 'desktop' | 'downloads' | 'documents' | 'pictures' | 'videos' | 'music'
+): Promise<{
   directoryHandle: FileSystemDirectoryHandle;
   folderName: string;
   items: DesktopItem[];
 }> {
   if (!isFileSystemAccessSupported()) {
-    throw new Error('File System Access API is not supported in this browser. Please use Chrome or Edge.');
+    throw new Error('File System Access API is not supported in this browser. Please use Chrome, Edge, or Chromium.');
+  }
+
+  const options: Record<string, unknown> = {
+    mode: 'readwrite',
+  };
+  if (startInHint) {
+    options.startIn = startInHint;
   }
 
   // @ts-expect-error - showDirectoryPicker is standard on Chromium
-  const directoryHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker({
-    mode: 'readwrite',
-    startIn: 'desktop',
-  });
+  const directoryHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker(options);
 
   const items: DesktopItem[] = [];
 
@@ -72,24 +78,82 @@ export async function pickRealDirectory(): Promise<{
   };
 }
 
+export async function pickRealDestinationDirectory(): Promise<{
+  directoryHandle: FileSystemDirectoryHandle;
+  folderName: string;
+}> {
+  if (!isFileSystemAccessSupported()) {
+    throw new Error('File System Access API is not supported in this browser.');
+  }
+
+  // @ts-expect-error - showDirectoryPicker
+  const directoryHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker({
+    mode: 'readwrite',
+  });
+
+  return {
+    directoryHandle,
+    folderName: directoryHandle.name,
+  };
+}
+
+export async function getOrCreateNestedDirectoryHandle(
+  baseDirHandle: FileSystemDirectoryHandle,
+  folderPath: string
+): Promise<FileSystemDirectoryHandle> {
+  const segments = folderPath.split(/[\\/]/).map((s) => s.trim()).filter(Boolean);
+  let currentDir = baseDirHandle;
+  for (const segment of segments) {
+    currentDir = await currentDir.getDirectoryHandle(segment, { create: true });
+  }
+  return currentDir;
+}
+
 export async function moveRealFile(
   rootDirHandle: FileSystemDirectoryHandle,
   fileHandle: FileSystemFileHandle,
   destinationFolderName: string,
-  fileName: string
+  fileName: string,
+  explicitTargetDirHandle?: FileSystemDirectoryHandle | null
 ): Promise<void> {
-  // Strip leading/trailing slashes or Desktop\ prefix if present
-  const cleanFolderName = destinationFolderName.replace(/^Desktop[\\/]/i, '').replace(/^[\\/]+|[\\/]+$/g, '');
-  
-  // Get or create target directory
-  const targetDirHandle = await rootDirHandle.getDirectoryHandle(cleanFolderName, { create: true });
+  let targetDirHandle: FileSystemDirectoryHandle;
+
+  if (explicitTargetDirHandle) {
+    // If a dedicated target directory handle was picked
+    const cleanSub = destinationFolderName
+      .replace(new RegExp(`^${explicitTargetDirHandle.name}[\\\\/]`, 'i'), '')
+      .replace(/^[\\/]+|[\\/]+$/g, '')
+      .trim();
+
+    if (cleanSub && cleanSub !== explicitTargetDirHandle.name) {
+      targetDirHandle = await getOrCreateNestedDirectoryHandle(explicitTargetDirHandle, cleanSub);
+    } else {
+      targetDirHandle = explicitTargetDirHandle;
+    }
+  } else {
+    // Subfolder inside root directory handle
+    const cleanFolderName = destinationFolderName
+      .replace(/^Desktop[\\/]/i, '')
+      .replace(/^[\\/]+|[\\/]+$/g, '')
+      .trim();
+
+    if (!cleanFolderName) {
+      throw new Error('Destination folder name cannot be empty');
+    }
+
+    targetDirHandle = await getOrCreateNestedDirectoryHandle(rootDirHandle, cleanFolderName);
+  }
 
   // Modern move API (Chromium 111+)
   // @ts-expect-error - move method is supported in Chromium
   if (typeof fileHandle.move === 'function') {
-    // @ts-expect-error - move method
-    await fileHandle.move(targetDirHandle, fileName);
-    return;
+    try {
+      // @ts-expect-error - move method
+      await fileHandle.move(targetDirHandle, fileName);
+      return;
+    } catch {
+      // If move fails across directory boundaries, fallback to copy + remove
+    }
   }
 
   // Fallback: Copy content then remove original
@@ -99,6 +163,6 @@ export async function moveRealFile(
   await writable.write(await originalFile.arrayBuffer());
   await writable.close();
 
-  // Remove original entry from root
+  // Remove original entry from source
   await rootDirHandle.removeEntry(fileName);
 }

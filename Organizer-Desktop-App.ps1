@@ -1,14 +1,12 @@
-# High-DPI Awareness for Windows 10 & 11 (resolves blurry/pixelated window on 4K displays)
-try {
-    # Per-Monitor V2 DPI awareness (Windows 10 1703+)
-    $shcore = Add-Type -MemberDefinition '[DllImport("Shcore.dll")] public static extern int SetProcessDpiAwareness(int awareness);' -Name 'ShcoreDpi' -Namespace 'DpiUtil' -PassThru -ErrorAction SilentlyContinue
-    if ($shcore) { [void]$shcore::SetProcessDpiAwareness(2) }
-} catch {
-    try {
-        $user32 = Add-Type -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();' -Name 'User32Dpi' -Namespace 'DpiUtil' -PassThru -ErrorAction SilentlyContinue
-        if ($user32) { [void]$user32::SetProcessDPIAware() }
-    } catch {}
-}
+<#
+.SYNOPSIS
+    Windows File Organizer - Native Interactive Desktop App
+.DESCRIPTION
+    Scans ANY directory the user specifies (Desktop, Downloads, Documents, or any folder),
+    auto-detects files matching the selected category (Pictures, Documents, Shortcuts, Installers,
+    Archives, Videos, Audio, Code, or All Loose Files), and organizes them into ANY destination
+    folder the user chooses with 1-Click Undo support.
+#>
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -17,55 +15,63 @@ Add-Type -AssemblyName System.Drawing
 
 # Global State
 $script:DesktopPath = [Environment]::GetFolderPath([Environment+SpecialFolder]::Desktop)
+$script:DownloadsPath = (New-Object -ComObject Shell.Application).Namespace('shell:Downloads').Self.Path
+if (-not $script:DownloadsPath) {
+    $script:DownloadsPath = Join-Path $env:USERPROFILE "Downloads"
+}
+$script:DocumentsPath = [Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments)
+
+$script:CurrentSourcePath = $script:DesktopPath
 $script:LastMovedFiles = @()
 $script:LastTargetFolder = ""
+$script:CurrentFiles = @()
 
-# Define File Type Categories
+# File Categories Definition
 $script:Categories = @(
     @{
-        Name = "Pictures & Screenshots"
+        Name = "Pictures & Screenshots (.png, .jpg, .svg, .gif...)"
+        Extensions = @(".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", ".ico", ".tiff", ".psd")
         Folder = "Pictures"
-        Extensions = @(".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico", ".svg", ".tiff")
     },
     @{
-        Name = "Shortcuts & App Icons"
-        Folder = "Shortcuts"
-        Extensions = @(".lnk", ".url")
-    },
-    @{
-        Name = "Documents & PDFs"
-        Folder = "Documents"
+        Name = "Documents & PDFs (.pdf, .docx, .xlsx, .txt...)"
         Extensions = @(".pdf", ".docx", ".doc", ".txt", ".xlsx", ".xls", ".csv", ".pptx", ".ppt", ".md", ".rtf")
+        Folder = "Documents"
     },
     @{
-        Name = "Installers & Executables"
+        Name = "Shortcuts & Web Links (.lnk, .url)"
+        Extensions = @(".lnk", ".url", ".desktop", ".website")
+        Folder = "Shortcuts"
+    },
+    @{
+        Name = "Installers & Programs (.exe, .msi, .bat, .cmd...)"
+        Extensions = @(".exe", ".msi", ".bat", ".cmd", ".ps1", ".iso", ".bin")
         Folder = "Installers"
-        Extensions = @(".exe", ".msi", ".bat", ".cmd", ".iso")
     },
     @{
-        Name = "Archives & Zips"
+        Name = "Archives & Zips (.zip, .rar, .7z, .tar.gz...)"
+        Extensions = @(".zip", ".rar", ".7z", ".tar", ".gz", ".bz2", ".xz")
         Folder = "Archives"
-        Extensions = @(".zip", ".rar", ".7z", ".tar", ".gz")
     },
     @{
-        Name = "Videos & Clips"
+        Name = "Videos & Recordings (.mp4, .mkv, .mov, .avi...)"
+        Extensions = @(".mp4", ".mkv", ".mov", ".avi", ".wmv", ".webm", ".flv")
         Folder = "Videos"
-        Extensions = @(".mp4", ".mkv", ".mov", ".avi", ".wmv", ".webm")
     },
     @{
-        Name = "Music & Audio"
+        Name = "Music & Audio (.mp3, .wav, .flac, .m4a...)"
+        Extensions = @(".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".wma")
         Folder = "Audio"
-        Extensions = @(".mp3", ".wav", ".m4a", ".flac", ".aac")
     },
     @{
-        Name = "Code & Scripts"
+        Name = "Code & Dev Files (.ts, .js, .py, .json, .html...)"
+        Extensions = @(".ts", ".js", ".py", ".json", ".html", ".css", ".sql", ".cpp", ".cs", ".java", ".xml", ".log")
         Folder = "Code"
-        Extensions = @(".py", ".js", ".ts", ".json", ".html", ".css", ".sql", ".ps1", ".cpp", ".cs")
     },
     @{
-        Name = "All Loose Desktop Files"
-        Folder = "Desktop Cleanup"
+        Name = "All Loose Files (Clean entire directory)"
         Extensions = @("*")
+        Folder = "Cleaned Files"
     }
 )
 
@@ -79,9 +85,8 @@ function Format-FileSize([long]$Bytes) {
 
 # Main Form
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "Windows Desktop File Organizer"
-$form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Font
-$form.Size = New-Object System.Drawing.Size(680, 640)
+$form.Text = "Windows File Organizer - Target Any Directory"
+$form.Size = New-Object System.Drawing.Size(700, 710)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = [System.Drawing.Color]::FromArgb(248, 249, 250)
 $form.Font = New-Object System.Drawing.Font("Segoe UI", 9)
@@ -90,13 +95,13 @@ $form.MaximizeBox = $false
 
 # Header Panel
 $headerPanel = New-Object System.Windows.Forms.Panel
-$headerPanel.Size = New-Object System.Drawing.Size(680, 75)
+$headerPanel.Size = New-Object System.Drawing.Size(700, 70)
 $headerPanel.Location = New-Object System.Drawing.Point(0, 0)
 $headerPanel.BackColor = [System.Drawing.Color]::FromArgb(24, 76, 120)
 $form.Controls.Add($headerPanel)
 
 $lblTitle = New-Object System.Windows.Forms.Label
-$lblTitle.Text = "Windows Desktop File Organizer"
+$lblTitle.Text = "Windows File Organizer"
 $lblTitle.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 13, [System.Drawing.FontStyle]::Bold)
 $lblTitle.ForeColor = [System.Drawing.Color]::White
 $lblTitle.Location = New-Object System.Drawing.Point(20, 12)
@@ -104,26 +109,62 @@ $lblTitle.AutoSize = $true
 $headerPanel.Controls.Add($lblTitle)
 
 $lblSubtitle = New-Object System.Windows.Forms.Label
-$lblSubtitle.Text = "Target: $script:DesktopPath"
+$lblSubtitle.Text = "Scan any directory on your computer and organize into any destination folder"
 $lblSubtitle.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
 $lblSubtitle.ForeColor = [System.Drawing.Color]::FromArgb(200, 220, 240)
 $lblSubtitle.Location = New-Object System.Drawing.Point(21, 40)
 $lblSubtitle.AutoSize = $true
 $headerPanel.Controls.Add($lblSubtitle)
 
+# Section 0: Source Directory Selection
+$grpSource = New-Object System.Windows.Forms.GroupBox
+$grpSource.Text = "Source Directory to Scan"
+$grpSource.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 9)
+$grpSource.Location = New-Object System.Drawing.Point(20, 80)
+$grpSource.Size = New-Object System.Drawing.Size(645, 80)
+$form.Controls.Add($grpSource)
+
+$txtSourceFolder = New-Object System.Windows.Forms.TextBox
+$txtSourceFolder.Location = New-Object System.Drawing.Point(15, 25)
+$txtSourceFolder.Size = New-Object System.Drawing.Size(370, 26)
+$txtSourceFolder.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$txtSourceFolder.Text = $script:CurrentSourcePath
+$grpSource.Controls.Add($txtSourceFolder)
+
+$btnBrowseSource = New-Object System.Windows.Forms.Button
+$btnBrowseSource.Text = "Browse..."
+$btnBrowseSource.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
+$btnBrowseSource.Location = New-Object System.Drawing.Point(395, 24)
+$btnBrowseSource.Size = New-Object System.Drawing.Size(80, 28)
+$grpSource.Controls.Add($btnBrowseSource)
+
+$btnPresetDesktop = New-Object System.Windows.Forms.Button
+$btnPresetDesktop.Text = "Desktop"
+$btnPresetDesktop.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+$btnPresetDesktop.Location = New-Object System.Drawing.Point(480, 24)
+$btnPresetDesktop.Size = New-Object System.Drawing.Size(70, 28)
+$grpSource.Controls.Add($btnPresetDesktop)
+
+$btnPresetDownloads = New-Object System.Windows.Forms.Button
+$btnPresetDownloads.Text = "Downloads"
+$btnPresetDownloads.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+$btnPresetDownloads.Location = New-Object System.Drawing.Point(555, 24)
+$btnPresetDownloads.Size = New-Object System.Drawing.Size(78, 28)
+$grpSource.Controls.Add($btnPresetDownloads)
+
 # Step 1: Pick File Type GroupBox
 $grpStep1 = New-Object System.Windows.Forms.GroupBox
 $grpStep1.Text = "Step 1: Pick the File Type to Organize"
 $grpStep1.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 9)
-$grpStep1.Location = New-Object System.Drawing.Point(20, 85)
-$grpStep1.Size = New-Object System.Drawing.Size(625, 80)
+$grpStep1.Location = New-Object System.Drawing.Point(20, 168)
+$grpStep1.Size = New-Object System.Drawing.Size(645, 75)
 $form.Controls.Add($grpStep1)
 
 $cboType = New-Object System.Windows.Forms.ComboBox
 $cboType.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
 $cboType.Font = New-Object System.Drawing.Font("Segoe UI", 9.5)
-$cboType.Location = New-Object System.Drawing.Point(15, 30)
-$cboType.Size = New-Object System.Drawing.Size(380, 28)
+$cboType.Location = New-Object System.Drawing.Point(15, 28)
+$cboType.Size = New-Object System.Drawing.Size(460, 28)
 foreach ($cat in $script:Categories) {
     [void]$cboType.Items.Add($cat.Name)
 }
@@ -131,25 +172,24 @@ $cboType.SelectedIndex = 0
 $grpStep1.Controls.Add($cboType)
 
 $btnRefresh = New-Object System.Windows.Forms.Button
-$btnRefresh.Text = "Scan Desktop"
+$btnRefresh.Text = "Scan Folder"
 $btnRefresh.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
-$btnRefresh.Location = New-Object System.Drawing.Point(405, 29)
-$btnRefresh.Size = New-Object System.Drawing.Size(100, 29)
+$btnRefresh.Location = New-Object System.Drawing.Point(485, 27)
+$btnRefresh.Size = New-Object System.Drawing.Size(148, 29)
 $btnRefresh.BackColor = [System.Drawing.Color]::FromArgb(235, 238, 242)
-$btnRefresh.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
 $grpStep1.Controls.Add($btnRefresh)
 
 # Step 2: Matching Files GroupBox
 $grpStep2 = New-Object System.Windows.Forms.GroupBox
-$grpStep2.Text = "Step 2: Auto-Selected Desktop Files"
+$grpStep2.Text = "Step 2: Auto-Selected Files"
 $grpStep2.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 9)
-$grpStep2.Location = New-Object System.Drawing.Point(20, 175)
-$grpStep2.Size = New-Object System.Drawing.Size(625, 240)
+$grpStep2.Location = New-Object System.Drawing.Point(20, 250)
+$grpStep2.Size = New-Object System.Drawing.Size(645, 220)
 $form.Controls.Add($grpStep2)
 
 $chkListFiles = New-Object System.Windows.Forms.CheckedListBox
 $chkListFiles.Location = New-Object System.Drawing.Point(15, 25)
-$chkListFiles.Size = New-Object System.Drawing.Size(595, 170)
+$chkListFiles.Size = New-Object System.Drawing.Size(615, 150)
 $chkListFiles.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $chkListFiles.CheckOnClick = $true
 $grpStep2.Controls.Add($chkListFiles)
@@ -158,52 +198,52 @@ $lblCount = New-Object System.Windows.Forms.Label
 $lblCount.Text = "0 files selected"
 $lblCount.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
 $lblCount.ForeColor = [System.Drawing.Color]::FromArgb(70, 80, 90)
-$lblCount.Location = New-Object System.Drawing.Point(15, 205)
+$lblCount.Location = New-Object System.Drawing.Point(15, 186)
 $lblCount.AutoSize = $true
 $grpStep2.Controls.Add($lblCount)
 
 $btnSelectAll = New-Object System.Windows.Forms.Button
 $btnSelectAll.Text = "Select All"
 $btnSelectAll.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
-$btnSelectAll.Location = New-Object System.Drawing.Point(425, 201)
-$btnSelectAll.Size = New-Object System.Drawing.Size(85, 26)
+$btnSelectAll.Location = New-Object System.Drawing.Point(445, 182)
+$btnSelectAll.Size = New-Object System.Drawing.Size(90, 26)
 $grpStep2.Controls.Add($btnSelectAll)
 
 $btnDeselectAll = New-Object System.Windows.Forms.Button
 $btnDeselectAll.Text = "Clear All"
 $btnDeselectAll.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
-$btnDeselectAll.Location = New-Object System.Drawing.Point(520, 201)
-$btnDeselectAll.Size = New-Object System.Drawing.Size(85, 26)
+$btnDeselectAll.Location = New-Object System.Drawing.Point(540, 182)
+$btnDeselectAll.Size = New-Object System.Drawing.Size(90, 26)
 $grpStep2.Controls.Add($btnDeselectAll)
 
 # Step 3: Destination Folder GroupBox
 $grpStep3 = New-Object System.Windows.Forms.GroupBox
-$grpStep3.Text = "Step 3: Choose Destination Folder"
+$grpStep3.Text = "Step 3: Choose Any Destination Folder"
 $grpStep3.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 9)
-$grpStep3.Location = New-Object System.Drawing.Point(20, 425)
-$grpStep3.Size = New-Object System.Drawing.Size(625, 90)
+$grpStep3.Location = New-Object System.Drawing.Point(20, 478)
+$grpStep3.Size = New-Object System.Drawing.Size(645, 85)
 $form.Controls.Add($grpStep3)
 
 $lblFolderPrefix = New-Object System.Windows.Forms.Label
-$lblFolderPrefix.Text = "Folder Name:"
-$lblFolderPrefix.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
-$lblFolderPrefix.Location = New-Object System.Drawing.Point(15, 26)
+$lblFolderPrefix.Text = "Destination Path (relative subfolder or full absolute path e.g. D:\Sorted):"
+$lblFolderPrefix.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+$lblFolderPrefix.Location = New-Object System.Drawing.Point(15, 22)
 $lblFolderPrefix.AutoSize = $true
 $grpStep3.Controls.Add($lblFolderPrefix)
 
 $txtTargetFolder = New-Object System.Windows.Forms.TextBox
-$txtTargetFolder.Location = New-Object System.Drawing.Point(15, 48)
-$txtTargetFolder.Size = New-Object System.Drawing.Size(430, 26)
+$txtTargetFolder.Location = New-Object System.Drawing.Point(15, 45)
+$txtTargetFolder.Size = New-Object System.Drawing.Size(515, 26)
 $txtTargetFolder.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $txtTargetFolder.Text = "Pictures"
 $grpStep3.Controls.Add($txtTargetFolder)
 
-$btnBrowseFolder = New-Object System.Windows.Forms.Button
-$btnBrowseFolder.Text = "Browse..."
-$btnBrowseFolder.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
-$btnBrowseFolder.Location = New-Object System.Drawing.Point(455, 47)
-$btnBrowseFolder.Size = New-Object System.Drawing.Size(85, 27)
-$grpStep3.Controls.Add($btnBrowseFolder)
+$btnBrowseTargetFolder = New-Object System.Windows.Forms.Button
+$btnBrowseTargetFolder.Text = "Browse..."
+$btnBrowseTargetFolder.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
+$btnBrowseTargetFolder.Location = New-Object System.Drawing.Point(540, 44)
+$btnBrowseTargetFolder.Size = New-Object System.Drawing.Size(90, 28)
+$grpStep3.Controls.Add($btnBrowseTargetFolder)
 
 # Bottom Action Buttons
 $btnOrganize = New-Object System.Windows.Forms.Button
@@ -212,15 +252,15 @@ $btnOrganize.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 10, [Sys
 $btnOrganize.BackColor = [System.Drawing.Color]::FromArgb(16, 124, 65)
 $btnOrganize.ForeColor = [System.Drawing.Color]::White
 $btnOrganize.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$btnOrganize.Location = New-Object System.Drawing.Point(20, 530)
-$btnOrganize.Size = New-Object System.Drawing.Size(450, 42)
+$btnOrganize.Location = New-Object System.Drawing.Point(20, 575)
+$btnOrganize.Size = New-Object System.Drawing.Size(465, 42)
 $form.Controls.Add($btnOrganize)
 
 $btnUndo = New-Object System.Windows.Forms.Button
 $btnUndo.Text = "Undo Last Move"
 $btnUndo.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$btnUndo.Location = New-Object System.Drawing.Point(480, 530)
-$btnUndo.Size = New-Object System.Drawing.Size(165, 42)
+$btnUndo.Location = New-Object System.Drawing.Point(495, 575)
+$btnUndo.Size = New-Object System.Drawing.Size(170, 42)
 $btnUndo.Enabled = $false
 $form.Controls.Add($btnUndo)
 
@@ -229,26 +269,32 @@ $lblStatus = New-Object System.Windows.Forms.Label
 $lblStatus.Text = "Ready. Pick a file type above."
 $lblStatus.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
 $lblStatus.ForeColor = [System.Drawing.Color]::FromArgb(100, 100, 100)
-$lblStatus.Location = New-Object System.Drawing.Point(22, 578)
+$lblStatus.Location = New-Object System.Drawing.Point(22, 628)
 $lblStatus.AutoSize = $true
 $form.Controls.Add($lblStatus)
 
-# Storage for matching file objects
-$script:CurrentFiles = @()
-
-# Function: Scan Desktop and Populate CheckedListBox
-function Update-DesktopFiles {
+# Function: Scan Active Source Folder and Populate CheckedListBox
+function Update-FolderFiles {
     $chkListFiles.Items.Clear()
     $script:CurrentFiles = @()
+
+    $src = $txtSourceFolder.Text.Trim()
+    if ([string]::IsNullOrWhiteSpace($src) -or (-not (Test-Path -Path $src))) {
+        $lblStatus.Text = "Source directory not found: $src"
+        $lblCount.Text = "0 files found"
+        $btnOrganize.Enabled = $false
+        return
+    }
+    $script:CurrentSourcePath = $src
 
     $selectedCategory = $script:Categories[$cboType.SelectedIndex]
     $txtTargetFolder.Text = $selectedCategory.Folder
 
-    # Get loose files on Desktop (not in subfolders)
-    $allDesktopFiles = Get-ChildItem -Path $script:DesktopPath -File -ErrorAction SilentlyContinue
+    # Get loose files in current source directory
+    $allFiles = Get-ChildItem -Path $script:CurrentSourcePath -File -ErrorAction SilentlyContinue
 
     $matchingFiles = @()
-    foreach ($file in $allDesktopFiles) {
+    foreach ($file in $allFiles) {
         $ext = $file.Extension.ToLower()
         if ($selectedCategory.Extensions -contains "*" -or $selectedCategory.Extensions -contains $ext) {
             $matchingFiles += $file
@@ -261,7 +307,6 @@ function Update-DesktopFiles {
     foreach ($file in $matchingFiles) {
         $sizeStr = Format-FileSize $file.Length
         $displayText = "$($file.Name)  ($sizeStr)"
-        # Auto-check all matching files by default
         [void]$chkListFiles.Items.Add($displayText, $true)
         $totalSize += $file.Length
     }
@@ -271,17 +316,39 @@ function Update-DesktopFiles {
     $lblCount.Text = "$count of $count files selected ($sizeFormatted)"
     $btnOrganize.Text = "Organize $count File(s) into Folder"
     $btnOrganize.Enabled = ($count -gt 0)
-    $lblStatus.Text = "Found $count matching files on Desktop."
+    $lblStatus.Text = "Scanned $script:CurrentSourcePath - found $count matching loose files."
 }
+
+# Browse Source Directory
+$btnBrowseSource.Add_Click({
+    $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
+    $dlg.SelectedPath = $script:CurrentSourcePath
+    $dlg.Description = "Select ANY Directory to Scan"
+    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+        $txtSourceFolder.Text = $dlg.SelectedPath
+        Update-FolderFiles
+    }
+})
+
+# Quick Source Presets
+$btnPresetDesktop.Add_Click({
+    $txtSourceFolder.Text = $script:DesktopPath
+    Update-FolderFiles
+})
+
+$btnPresetDownloads.Add_Click({
+    $txtSourceFolder.Text = $script:DownloadsPath
+    Update-FolderFiles
+})
 
 # ComboBox selection change event
 $cboType.Add_SelectedIndexChanged({
-    Update-DesktopFiles
+    Update-FolderFiles
 })
 
 # Scan / Refresh Button
 $btnRefresh.Add_Click({
-    Update-DesktopFiles
+    Update-FolderFiles
 })
 
 # Select All Button
@@ -320,16 +387,16 @@ $chkListFiles.Add_ItemCheck({
     })
 })
 
-# Browse Folder Dialog
-$btnBrowseFolder.Add_Click({
+# Browse Destination Folder Dialog
+$btnBrowseTargetFolder.Add_Click({
     $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
-    $dlg.SelectedPath = $script:DesktopPath
-    $dlg.Description = "Select Destination Folder on Desktop"
+    $dlg.SelectedPath = $script:CurrentSourcePath
+    $dlg.Description = "Select Destination Folder"
     if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $chosen = $dlg.SelectedPath
-        # If inside Desktop, make relative
-        if ($chosen.StartsWith($script:DesktopPath, [System.StringComparison]::OrdinalIgnoreCase)) {
-            $rel = $chosen.Substring($script:DesktopPath.Length).TrimStart('\', '/')
+        # If inside source folder, show relative or absolute
+        if ($chosen.StartsWith($script:CurrentSourcePath, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $rel = $chosen.Substring($script:CurrentSourcePath.Length).TrimStart('\', '/')
             if ($rel -ne "") { $txtTargetFolder.Text = $rel }
             else { $txtTargetFolder.Text = $chosen }
         } else {
@@ -356,7 +423,7 @@ $btnOrganize.Add_Click({
     if ([System.IO.Path]::IsPathRooted($folderInput)) {
         $destinationPath = $folderInput
     } else {
-        $destinationPath = Join-Path $script:DesktopPath $folderInput
+        $destinationPath = Join-Path $script:CurrentSourcePath $folderInput
     }
 
     # Create destination directory if not exists
@@ -401,9 +468,9 @@ $btnOrganize.Add_Click({
     }
 
     # Refresh
-    Update-DesktopFiles
+    Update-FolderFiles
 
-    $msg = "Successfully organized $($movedFiles.Count) file(s) into:`n$destinationPath"
+    $msg = "Successfully organized $($movedFiles.Count) file(s) from:`n$script:CurrentSourcePath`n`ninto:`n$destinationPath"
     if ($errors.Count -gt 0) {
         $msg += "`n`nErrors encountered on $($errors.Count) file(s):`n" + ($errors -join "`n")
     }
@@ -427,15 +494,15 @@ $btnUndo.Add_Click({
         }
     }
 
-    [System.Windows.Forms.MessageBox]::Show("Restored $restored file(s) back to your Desktop.", "Undo Complete", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
+    [System.Windows.Forms.MessageBox]::Show("Restored $restored file(s) back to:`n$script:CurrentSourcePath", "Undo Complete", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
     $script:LastMovedFiles = @()
     $btnUndo.Enabled = $false
     $btnUndo.Text = "Undo Last Move"
-    Update-DesktopFiles
+    Update-FolderFiles
 })
 
 # Initial Scan
-Update-DesktopFiles
+Update-FolderFiles
 
 # Show Form
 [void]$form.ShowDialog()

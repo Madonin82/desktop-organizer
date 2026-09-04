@@ -15,33 +15,21 @@ import { HistoryLog } from './components/HistoryLog';
 import { ExecutionModal } from './components/ExecutionModal';
 
 import { DesktopItem, FileCategoryKey, MoveOperation, ViewMode } from './types';
-import { INITIAL_MOCK_DESKTOP_ITEMS } from './data/mockDesktop';
-import { FILE_CATEGORIES } from './data/fileTypes';
+import { INITIAL_MOCK_DESKTOP_ITEMS, getMockItemsForLocation } from './data/mockDesktop';
+import { FILE_CATEGORIES, getSuggestedDestination } from './data/fileTypes';
 import { moveRealFile } from './utils/fileSystem';
-import { useDisplayResolution } from './utils/useDisplayResolution';
 
 export default function App() {
   const [items, setItems] = useState<DesktopItem[]>(INITIAL_MOCK_DESKTOP_ITEMS);
   const [rootDirHandle, setRootDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
+  const [targetDirHandle, setTargetDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [isRealFolder, setIsRealFolder] = useState<boolean>(false);
   const [currentFolderName, setCurrentFolderName] = useState<string>('Desktop');
-
-  // Display resolution and 4K scaling engine
-  const {
-    displayInfo,
-    scale,
-    isAuto,
-    setScale,
-    setAuto,
-    toggleFullscreen,
-    increaseScale,
-    decreaseScale,
-    resetScale,
-  } = useDisplayResolution();
+  const [currentFolderPath, setCurrentFolderPath] = useState<string>('C:\\Users\\User\\Desktop');
 
   const [selectedCategory, setSelectedCategory] = useState<FileCategoryKey>('images');
   const [customExtensions, setCustomExtensions] = useState<string[]>([]);
-  const [targetFolderName, setTargetFolderName] = useState<string>('Desktop\\Pictures');
+  const [targetFolderName, setTargetFolderName] = useState<string>('Pictures');
 
   const [viewMode, setViewMode] = useState<ViewMode>('manager');
   const [operations, setOperations] = useState<MoveOperation[]>([]);
@@ -66,7 +54,7 @@ export default function App() {
     }
   }, [isDark]);
 
-  // Existing desktop folders list
+  // Existing subfolders list found in current items
   const existingFolders = useMemo(() => {
     const folderSet = new Set<string>();
     items.forEach((item) => {
@@ -77,7 +65,7 @@ export default function App() {
     return Array.from(folderSet);
   }, [items]);
 
-  // Unorganized items count on desktop root
+  // Unorganized loose items count in current root folder
   const unorganizedCount = useMemo(() => {
     return items.filter((i) => !i.folderPath || i.folderPath === '').length;
   }, [items]);
@@ -87,7 +75,7 @@ export default function App() {
     (category: FileCategoryKey, exts: string[] = customExtensions) => {
       setItems((prev) =>
         prev.map((item) => {
-          // Only select items that are in the root desktop (not yet in a subfolder)
+          // Only select items that are in the root directory (not yet in a subfolder)
           if (item.folderPath && item.folderPath !== '') {
             return { ...item, selected: false };
           }
@@ -117,7 +105,7 @@ export default function App() {
   // Initialize selection for default category on first load
   useEffect(() => {
     selectMatchingCategoryItems('images');
-  }, []);
+  }, [selectMatchingCategoryItems]);
 
   // Handle category change: update selected category, suggested folder, and select all matching
   const handleSelectCategory = (category: FileCategoryKey, exts?: string[]) => {
@@ -128,10 +116,10 @@ export default function App() {
 
     // Auto-update suggested target folder name based on category
     if (category === 'all') {
-      setTargetFolderName('Desktop\\Desktop Cleanup');
+      setTargetFolderName('Cleaned Files');
     } else if (category === 'custom') {
       const label = (exts && exts[0]) ? exts[0].toUpperCase() : 'Custom';
-      setTargetFolderName(`Desktop\\${label} Files`);
+      setTargetFolderName(`${label} Files`);
     } else {
       const cat = FILE_CATEGORIES.find((c) => c.id === category);
       if (cat) {
@@ -139,7 +127,7 @@ export default function App() {
       }
     }
 
-    // Auto-select all matching files ("I run the app, pic the file type, and it selects them all")
+    // Auto-select all matching files
     selectMatchingCategoryItems(category, exts || customExtensions);
   };
 
@@ -150,7 +138,7 @@ export default function App() {
     );
   };
 
-  // Select all items currently shown for this category on desktop
+  // Select all items currently shown for this category on root
   const handleSelectAll = () => {
     setItems((prev) =>
       prev.map((item) => {
@@ -167,14 +155,16 @@ export default function App() {
     setItems((prev) => prev.map((item) => ({ ...item, selected: false })));
   };
 
-  // Load real folder from File System Access API
+  // Load real folder from File System Access API or browser file dialog
   const handleDirectoryLoaded = (
     newItems: DesktopItem[],
     folderName: string,
-    dirHandle?: FileSystemDirectoryHandle
+    dirHandle?: FileSystemDirectoryHandle,
+    fullPath?: string
   ) => {
     setItems(newItems);
     setCurrentFolderName(folderName);
+    setCurrentFolderPath(fullPath || `C:\\Users\\...\\${folderName}`);
     if (dirHandle) {
       setRootDirHandle(dirHandle);
       setIsRealFolder(true);
@@ -188,12 +178,15 @@ export default function App() {
     }, 50);
   };
 
-  // Reset to sample cluttered desktop items
-  const handleResetToMock = () => {
-    setItems(INITIAL_MOCK_DESKTOP_ITEMS);
+  // Reset to sample folder items (Desktop, Downloads, Documents, etc.)
+  const handleResetToMock = (presetKey = 'Desktop') => {
+    const mockItems = getMockItemsForLocation(presetKey);
+    setItems(mockItems);
     setRootDirHandle(null);
+    setTargetDirHandle(null);
     setIsRealFolder(false);
-    setCurrentFolderName('Desktop');
+    setCurrentFolderName(presetKey);
+    setCurrentFolderPath(`C:\\Users\\User\\${presetKey}`);
     setTimeout(() => {
       selectMatchingCategoryItems(selectedCategory, customExtensions);
     }, 50);
@@ -204,13 +197,17 @@ export default function App() {
     const selectedItems = items.filter((i) => i.selected && (!i.folderPath || i.folderPath === ''));
     if (selectedItems.length === 0) return;
 
-    const cleanFolder = targetFolderName.replace(/^Desktop[\\/]/i, '').replace(/^[\\/]+|[\\/]+$/g, '');
-    if (!cleanFolder) return;
+    const cleanFolder = targetFolderName.trim();
+    if (!cleanFolder && !targetDirHandle) return;
 
     setIsExecuting(true);
     setIsModalOpen(true);
     setProgress(0);
     setIsCompleted(false);
+
+    const destinationDisplay = targetDirHandle
+      ? targetDirHandle.name
+      : cleanFolder;
 
     const sourceFilesLog: {
       id: string;
@@ -227,20 +224,20 @@ export default function App() {
       // If connected to real folder and has fileHandle, execute real move
       if (rootDirHandle && item.fileHandle) {
         try {
-          await moveRealFile(rootDirHandle, item.fileHandle, cleanFolder, item.name);
+          await moveRealFile(rootDirHandle, item.fileHandle, cleanFolder, item.name, targetDirHandle);
         } catch (err) {
           console.error(`Failed to move file ${item.name}:`, err);
         }
       } else {
-        // Virtual delay for smooth animation feedback
-        await new Promise((res) => setTimeout(res, 80));
+        // Virtual delay for smooth animation feedback in sandbox
+        await new Promise((res) => setTimeout(res, 60));
       }
 
       sourceFilesLog.push({
         id: item.id,
         name: item.name,
         originalFolder: item.folderPath || '',
-        newFolder: cleanFolder,
+        newFolder: destinationDisplay,
       });
 
       const currentProgress = ((index + 1) / selectedItems.length) * 100;
@@ -253,7 +250,7 @@ export default function App() {
         if (item.selected && (!item.folderPath || item.folderPath === '')) {
           return {
             ...item,
-            folderPath: cleanFolder,
+            folderPath: destinationDisplay,
             selected: false,
           };
         }
@@ -264,8 +261,9 @@ export default function App() {
     const operationRecord: MoveOperation = {
       id: `op-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      sourceDirectory: currentFolderPath || currentFolderName,
       sourceFiles: sourceFilesLog,
-      destinationFolder: `Desktop\\${cleanFolder}`,
+      destinationFolder: destinationDisplay,
       fileCount: selectedItems.length,
       category: selectedCategory,
     };
@@ -303,20 +301,9 @@ export default function App() {
     return items.filter((i) => i.selected && (!i.folderPath || i.folderPath === '')).length;
   }, [items]);
 
-  const appContainerStyle: React.CSSProperties = {
-    zoom: scale,
-    width: scale === 1 ? '100vw' : `${100 / scale}vw`,
-    height: scale === 1 ? '100vh' : `${100 / scale}vh`,
-  };
-
   return (
-    <div
-      style={appContainerStyle}
-      className={`flex flex-col overflow-hidden transition-colors ${
-        isDark ? 'dark bg-neutral-950 text-neutral-100' : 'bg-neutral-100 text-neutral-900'
-      }`}
-    >
-      {/* Windows 11 Acrylic App Frame */}
+    <div className={`flex flex-col h-screen w-screen overflow-hidden ${isDark ? 'dark bg-neutral-950 text-neutral-100' : 'bg-neutral-100 text-neutral-900'}`}>
+      {/* Windows Acrylic App Frame */}
       <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-neutral-900 shadow-2xl transition-colors">
         {/* Title Bar & Top Navigation */}
         <TitleBar
@@ -325,20 +312,13 @@ export default function App() {
           isDark={isDark}
           setIsDark={setIsDark}
           totalItemsCount={items.length}
-          displayInfo={displayInfo}
-          scale={scale}
-          isAuto={isAuto}
-          setScale={setScale}
-          setAuto={setAuto}
-          toggleFullscreen={toggleFullscreen}
-          increaseScale={increaseScale}
-          decreaseScale={decreaseScale}
-          resetScale={resetScale}
         />
 
-        {/* Source Folder Header */}
+        {/* Source Folder Header: Target ANY directory */}
         <SourceFolderSelector
           currentFolderName={currentFolderName}
+          currentFolderPath={currentFolderPath}
+          setCurrentFolderPath={setCurrentFolderPath}
           isRealFolder={isRealFolder}
           onDirectoryLoaded={handleDirectoryLoaded}
           onResetToMock={handleResetToMock}
@@ -366,10 +346,13 @@ export default function App() {
               onDeselectAll={handleDeselectAll}
             />
 
-            {/* Step 3: Destination Folder & Organize Button */}
+            {/* Step 3: Destination Folder (ANY destination) & Organize Button */}
             <TargetFolderPicker
               targetFolderName={targetFolderName}
               setTargetFolderName={setTargetFolderName}
+              targetDirHandle={targetDirHandle}
+              setTargetDirHandle={setTargetDirHandle}
+              currentFolderName={currentFolderName}
               selectedCategory={selectedCategory}
               selectedCount={selectedCount}
               existingFolders={existingFolders}
@@ -383,6 +366,7 @@ export default function App() {
           <DesktopView
             items={items}
             folders={existingFolders}
+            currentFolderName={currentFolderName}
             onOpenOrganizer={() => setViewMode('manager')}
           />
         )}
@@ -392,6 +376,7 @@ export default function App() {
             selectedCategory={selectedCategory}
             targetFolderName={targetFolderName}
             customExtensions={customExtensions}
+            sourceDirectory={currentFolderPath || currentFolderName}
           />
         )}
 

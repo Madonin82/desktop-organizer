@@ -70,9 +70,11 @@ export const HistoryLog: React.FC<HistoryLogProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400">
-                    <span className="font-medium text-neutral-500">Desktop</span>
-                    <ArrowRight className="w-3 h-3 text-neutral-400" />
-                    <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">
+                    <span className="font-medium text-neutral-500 truncate max-w-[120px]" title={op.sourceDirectory || 'Source'}>
+                      {op.sourceDirectory || 'Source'}
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-neutral-400 shrink-0" />
+                    <span className="font-mono font-semibold text-blue-600 dark:text-blue-400 truncate max-w-[160px]" title={op.destinationFolder}>
                       {op.destinationFolder}
                     </span>
                     <span className="text-neutral-300 dark:text-neutral-700">•</span>

@@ -1,6 +1,6 @@
 {
   "name": "Desktop File Organizer",
-  "description": "Organize Windows desktop files, icons, and shortcuts into designated folders by file type.",
+  "description": "Scan and organize any directory, folder, or Windows desktop files into any chosen destination folder by file type.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

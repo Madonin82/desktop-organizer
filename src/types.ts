@@ -39,6 +39,7 @@ export interface DesktopItem {
 export interface MoveOperation {
   id: string;
   timestamp: string;
+  sourceDirectory?: string;
   sourceFiles: {
     id: string;
     name: string;

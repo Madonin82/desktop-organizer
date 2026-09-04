@@ -1,9 +1,9 @@
 import { DesktopItem } from '../types';
 
-export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
+export const MOCK_DESKTOP_ITEMS: DesktopItem[] = [
   // Screenshots & Images
   {
-    id: 'img-1',
+    id: 'dt-img-1',
     name: 'Screenshot 2026-08-12 143211.png',
     extension: 'png',
     size: 1420000,
@@ -14,7 +14,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'image',
   },
   {
-    id: 'img-2',
+    id: 'dt-img-2',
     name: 'Invoice_receipt_photo.jpg',
     extension: 'jpg',
     size: 2840000,
@@ -25,7 +25,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'image',
   },
   {
-    id: 'img-3',
+    id: 'dt-img-3',
     name: 'Project_diagram_v2.png',
     extension: 'png',
     size: 890000,
@@ -36,7 +36,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'image',
   },
   {
-    id: 'img-4',
+    id: 'dt-img-4',
     name: 'Wallpaper_4k_minimal.png',
     extension: 'png',
     size: 4320000,
@@ -47,7 +47,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'image',
   },
   {
-    id: 'img-5',
+    id: 'dt-img-5',
     name: 'Profile_headshot.jpg',
     extension: 'jpg',
     size: 1650000,
@@ -58,9 +58,9 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'image',
   },
 
-  // Shortcuts & Icons ("icons and stuff")
+  // Shortcuts & Icons
   {
-    id: 'sc-1',
+    id: 'dt-sc-1',
     name: 'Google Chrome.lnk',
     extension: 'lnk',
     size: 2048,
@@ -71,7 +71,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'shortcut',
   },
   {
-    id: 'sc-2',
+    id: 'dt-sc-2',
     name: 'Discord.lnk',
     extension: 'lnk',
     size: 2150,
@@ -82,7 +82,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'shortcut',
   },
   {
-    id: 'sc-3',
+    id: 'dt-sc-3',
     name: 'Visual Studio Code.lnk',
     extension: 'lnk',
     size: 2048,
@@ -93,7 +93,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'shortcut',
   },
   {
-    id: 'sc-4',
+    id: 'dt-sc-4',
     name: 'Steam.lnk',
     extension: 'lnk',
     size: 1980,
@@ -104,7 +104,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'shortcut',
   },
   {
-    id: 'sc-5',
+    id: 'dt-sc-5',
     name: 'Spotify Music.url',
     extension: 'url',
     size: 512,
@@ -117,7 +117,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
 
   // Documents & PDFs
   {
-    id: 'doc-1',
+    id: 'dt-doc-1',
     name: 'Resume_2026_Final.pdf',
     extension: 'pdf',
     size: 340000,
@@ -128,7 +128,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'pdf',
   },
   {
-    id: 'doc-2',
+    id: 'dt-doc-2',
     name: 'Tax_Document_W2_2025.pdf',
     extension: 'pdf',
     size: 512000,
@@ -139,7 +139,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'pdf',
   },
   {
-    id: 'doc-3',
+    id: 'dt-doc-3',
     name: 'Meeting_Notes_Aug.docx',
     extension: 'docx',
     size: 78000,
@@ -150,7 +150,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'doc',
   },
   {
-    id: 'doc-4',
+    id: 'dt-doc-4',
     name: 'Budget_Q3_Expenses.xlsx',
     extension: 'xlsx',
     size: 125000,
@@ -161,7 +161,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'doc',
   },
   {
-    id: 'doc-5',
+    id: 'dt-doc-5',
     name: 'Quick_todo_notes.txt',
     extension: 'txt',
     size: 4096,
@@ -174,7 +174,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
 
   // Installers & Executables
   {
-    id: 'exe-1',
+    id: 'dt-exe-1',
     name: 'VLC_Player_Setup_x64.exe',
     extension: 'exe',
     size: 44200000,
@@ -185,7 +185,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'exe',
   },
   {
-    id: 'exe-2',
+    id: 'dt-exe-2',
     name: 'Git-2.45.0-64-bit.exe',
     extension: 'exe',
     size: 61500000,
@@ -196,7 +196,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'exe',
   },
   {
-    id: 'exe-3',
+    id: 'dt-exe-3',
     name: 'ZoomInstallerFull.msi',
     extension: 'msi',
     size: 32400000,
@@ -209,7 +209,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
 
   // Archives & Zips
   {
-    id: 'arc-1',
+    id: 'dt-arc-1',
     name: 'Old_Backup_Photos.zip',
     extension: 'zip',
     size: 154000000,
@@ -220,7 +220,7 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'zip',
   },
   {
-    id: 'arc-2',
+    id: 'dt-arc-2',
     name: 'Client_Assets_Package.rar',
     extension: 'rar',
     size: 24000000,
@@ -231,9 +231,9 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'zip',
   },
 
-  // Video
+  // Video & Audio & Code
   {
-    id: 'vid-1',
+    id: 'dt-vid-1',
     name: 'Bug_Report_ScreenCapture.mp4',
     extension: 'mp4',
     size: 18700000,
@@ -243,10 +243,8 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     selected: false,
     iconType: 'video',
   },
-
-  // Audio
   {
-    id: 'aud-1',
+    id: 'dt-aud-1',
     name: 'Voice_Memo_Brainstorm.m4a',
     extension: 'm4a',
     size: 3200000,
@@ -256,11 +254,9 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     selected: false,
     iconType: 'audio',
   },
-
-  // Code
   {
-    id: 'code-1',
-    name: 'test_script.py',
+    id: 'dt-code-1',
+    name: 'cleanup_test.py',
     extension: 'py',
     size: 1240,
     modifiedAt: '2026-08-30 22:15',
@@ -270,3 +266,209 @@ export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = [
     iconType: 'code',
   },
 ];
+
+export const MOCK_DOWNLOADS_ITEMS: DesktopItem[] = [
+  {
+    id: 'dl-1',
+    name: 'ChromeSetup.exe',
+    extension: 'exe',
+    size: 1450000,
+    modifiedAt: '2026-09-02 10:15',
+    category: 'executables',
+    folderPath: '',
+    selected: false,
+    iconType: 'exe',
+  },
+  {
+    id: 'dl-2',
+    name: 'Figma-Desktop-Setup-124.0.exe',
+    extension: 'exe',
+    size: 89000000,
+    modifiedAt: '2026-09-01 14:22',
+    category: 'executables',
+    folderPath: '',
+    selected: false,
+    iconType: 'exe',
+  },
+  {
+    id: 'dl-3',
+    name: 'Quarterly_Financial_Report_Q2.pdf',
+    extension: 'pdf',
+    size: 2100000,
+    modifiedAt: '2026-08-31 09:30',
+    category: 'documents',
+    folderPath: '',
+    selected: false,
+    iconType: 'pdf',
+  },
+  {
+    id: 'dl-4',
+    name: 'Airline_Flight_Boarding_Pass.pdf',
+    extension: 'pdf',
+    size: 420000,
+    modifiedAt: '2026-08-30 18:45',
+    category: 'documents',
+    folderPath: '',
+    selected: false,
+    iconType: 'pdf',
+  },
+  {
+    id: 'dl-5',
+    name: 'Product_Catalog_2026_HighRes.zip',
+    extension: 'zip',
+    size: 198000000,
+    modifiedAt: '2026-08-29 11:10',
+    category: 'archives',
+    folderPath: '',
+    selected: false,
+    iconType: 'zip',
+  },
+  {
+    id: 'dl-6',
+    name: 'Unsplash_mountain_landscape_uhd.jpg',
+    extension: 'jpg',
+    size: 6400000,
+    modifiedAt: '2026-08-28 16:50',
+    category: 'images',
+    folderPath: '',
+    selected: false,
+    iconType: 'image',
+  },
+  {
+    id: 'dl-7',
+    name: 'Company_Logo_Pack_Vector.svg',
+    extension: 'svg',
+    size: 320000,
+    modifiedAt: '2026-08-27 13:15',
+    category: 'images',
+    folderPath: '',
+    selected: false,
+    iconType: 'image',
+  },
+  {
+    id: 'dl-8',
+    name: 'Webinar_Presentation_Recording.mp4',
+    extension: 'mp4',
+    size: 340000000,
+    modifiedAt: '2026-08-25 15:40',
+    category: 'video',
+    folderPath: '',
+    selected: false,
+    iconType: 'video',
+  },
+  {
+    id: 'dl-9',
+    name: 'Podcast_Episode_42_Interview.mp3',
+    extension: 'mp3',
+    size: 45000000,
+    modifiedAt: '2026-08-24 17:20',
+    category: 'audio',
+    folderPath: '',
+    selected: false,
+    iconType: 'audio',
+  },
+  {
+    id: 'dl-10',
+    name: 'package_node_modules_backup.tar.gz',
+    extension: 'gz',
+    size: 84000000,
+    modifiedAt: '2026-08-22 08:05',
+    category: 'archives',
+    folderPath: '',
+    selected: false,
+    iconType: 'zip',
+  },
+];
+
+export const MOCK_DOCUMENTS_ITEMS: DesktopItem[] = [
+  {
+    id: 'dc-1',
+    name: 'Annual_Business_Plan_2026.docx',
+    extension: 'docx',
+    size: 890000,
+    modifiedAt: '2026-09-02 11:00',
+    category: 'documents',
+    folderPath: '',
+    selected: false,
+    iconType: 'doc',
+  },
+  {
+    id: 'dc-2',
+    name: 'Revenue_Forecast_Model.xlsx',
+    extension: 'xlsx',
+    size: 1450000,
+    modifiedAt: '2026-09-01 16:30',
+    category: 'documents',
+    folderPath: '',
+    selected: false,
+    iconType: 'doc',
+  },
+  {
+    id: 'dc-3',
+    name: 'Consulting_Agreement_Executed.pdf',
+    extension: 'pdf',
+    size: 780000,
+    modifiedAt: '2026-08-28 14:15',
+    category: 'documents',
+    folderPath: '',
+    selected: false,
+    iconType: 'pdf',
+  },
+  {
+    id: 'dc-4',
+    name: 'Keynote_Investor_Pitch_v4.pptx',
+    extension: 'pptx',
+    size: 18400000,
+    modifiedAt: '2026-08-27 10:20',
+    category: 'documents',
+    folderPath: '',
+    selected: false,
+    iconType: 'doc',
+  },
+  {
+    id: 'dc-5',
+    name: 'Architecture_Design_Spec.md',
+    extension: 'md',
+    size: 34000,
+    modifiedAt: '2026-08-25 19:45',
+    category: 'documents',
+    folderPath: '',
+    selected: false,
+    iconType: 'doc',
+  },
+  {
+    id: 'dc-6',
+    name: 'System_Architecture_Diagram.png',
+    extension: 'png',
+    size: 1200000,
+    modifiedAt: '2026-08-24 15:10',
+    category: 'images',
+    folderPath: '',
+    selected: false,
+    iconType: 'image',
+  },
+  {
+    id: 'dc-7',
+    name: 'database_migration_v3.sql',
+    extension: 'sql',
+    size: 45000,
+    modifiedAt: '2026-08-20 12:00',
+    category: 'code',
+    folderPath: '',
+    selected: false,
+    iconType: 'code',
+  },
+];
+
+export const INITIAL_MOCK_DESKTOP_ITEMS: DesktopItem[] = MOCK_DESKTOP_ITEMS;
+
+export function getMockItemsForLocation(locationKey: string): DesktopItem[] {
+  const lower = locationKey.toLowerCase();
+  if (lower.includes('download')) {
+    return JSON.parse(JSON.stringify(MOCK_DOWNLOADS_ITEMS));
+  }
+  if (lower.includes('document')) {
+    return JSON.parse(JSON.stringify(MOCK_DOCUMENTS_ITEMS));
+  }
+  return JSON.parse(JSON.stringify(MOCK_DESKTOP_ITEMS));
+}

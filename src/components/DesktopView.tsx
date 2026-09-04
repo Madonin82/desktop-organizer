@@ -21,12 +21,14 @@ import { formatBytes } from '../utils/fileSystem';
 interface DesktopViewProps {
   items: DesktopItem[];
   folders: string[];
+  currentFolderName?: string;
   onOpenOrganizer: () => void;
 }
 
 export const DesktopView: React.FC<DesktopViewProps> = ({
   items,
   folders,
+  currentFolderName = 'Desktop',
   onOpenOrganizer,
 }) => {
   const [openedFolder, setOpenedFolder] = useState<string | null>(null);
@@ -117,13 +119,10 @@ export const DesktopView: React.FC<DesktopViewProps> = ({
       {/* Top Desktop Bar */}
       <div className="relative z-10 px-4 py-2 bg-black/40 backdrop-blur-md border-b border-white/10 flex items-center justify-between text-xs text-white">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-white/90">Windows Desktop Visual Simulator</span>
+          <span className="font-semibold text-white/90">{currentFolderName} Visual Explorer</span>
           <span className="text-white/40">•</span>
           <span className="text-white/70">
-            {rootItems.length} loose files on desktop • {folders.length} organized folders
-          </span>
-          <span className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/10 text-blue-300 border border-white/15">
-            4K Vector Sharp
+            {rootItems.length} loose files in {currentFolderName} • {folders.length} organized folders
           </span>
         </div>
 
@@ -139,7 +138,7 @@ export const DesktopView: React.FC<DesktopViewProps> = ({
 
       {/* Desktop Grid Canvas */}
       <div className="relative z-10 flex-1 p-6 overflow-y-auto">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-4 sm:gap-6 auto-rows-max">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 sm:gap-6 auto-rows-max">
           {/* Recycle Bin (System Icon) */}
           <div className="group flex flex-col items-center text-center cursor-default p-2 rounded-lg hover:bg-white/10 transition-colors">
             <div className="w-10 h-10 rounded-lg bg-neutral-700/60 border border-white/20 flex items-center justify-center text-white/80 shadow-md">

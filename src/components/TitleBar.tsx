@@ -10,11 +10,8 @@ import {
   Square,
   X,
   Sparkles,
-  Copy,
 } from 'lucide-react';
 import { ViewMode } from '../types';
-import { DisplayInfo } from '../utils/useDisplayResolution';
-import { DisplayResolutionMenu } from './DisplayResolutionMenu';
 
 interface TitleBarProps {
   viewMode: ViewMode;
@@ -22,15 +19,6 @@ interface TitleBarProps {
   isDark: boolean;
   setIsDark: (dark: boolean) => void;
   totalItemsCount: number;
-  displayInfo: DisplayInfo;
-  scale: number;
-  isAuto: boolean;
-  setScale: (scale: number) => void;
-  setAuto: (auto: boolean) => void;
-  toggleFullscreen: () => void;
-  increaseScale: () => void;
-  decreaseScale: () => void;
-  resetScale: () => void;
 }
 
 export const TitleBar: React.FC<TitleBarProps> = ({
@@ -39,20 +27,11 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   isDark,
   setIsDark,
   totalItemsCount,
-  displayInfo,
-  scale,
-  isAuto,
-  setScale,
-  setAuto,
-  toggleFullscreen,
-  increaseScale,
-  decreaseScale,
-  resetScale,
 }) => {
   return (
     <header
       id="windows-title-bar"
-      className="select-none flex items-center justify-between px-3 py-2 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100/90 dark:bg-neutral-900/90 backdrop-blur-md transition-colors shrink-0"
+      className="select-none flex items-center justify-between px-3 py-2 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100/90 dark:bg-neutral-900/90 backdrop-blur-md transition-colors"
     >
       {/* Left: Windows App Icon & Title & Navigation */}
       <div className="flex items-center gap-3">
@@ -131,28 +110,13 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         </nav>
       </div>
 
-      {/* Right: Display Resolution / 4K UI Scale & Theme & Window Controls */}
+      {/* Right: Theme Toggle & Windows Window Controls */}
       <div className="flex items-center gap-2">
-        {/* Display Resolution & 4K Scaling Menu */}
-        <DisplayResolutionMenu
-          displayInfo={displayInfo}
-          scale={scale}
-          isAuto={isAuto}
-          setScale={setScale}
-          setAuto={setAuto}
-          toggleFullscreen={toggleFullscreen}
-          increaseScale={increaseScale}
-          decreaseScale={decreaseScale}
-          resetScale={resetScale}
-        />
-
-        {/* Theme Toggle */}
         <button
           id="btn-theme-toggle"
           type="button"
           onClick={() => setIsDark(!isDark)}
           aria-label="Toggle Theme"
-          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           className="p-1.5 rounded text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors"
         >
           {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
@@ -162,34 +126,22 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         <div className="flex items-center">
           <button
             type="button"
-            onClick={decreaseScale}
             className="w-8 h-7 flex items-center justify-center text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors rounded-xs"
-            aria-label="Zoom Out"
-            title="Decrease UI Zoom (-10%)"
+            aria-label="Minimize"
           >
             <Minus className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
-            onClick={toggleFullscreen}
             className="w-8 h-7 flex items-center justify-center text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors rounded-xs"
-            aria-label={displayInfo.isFullscreen ? 'Restore Window' : 'Maximize to 4K Screen'}
-            title={displayInfo.isFullscreen ? 'Restore Window (F11)' : 'Maximize to 4K Screen (F11)'}
+            aria-label="Maximize"
           >
-            {displayInfo.isFullscreen ? <Copy className="w-2.5 h-2.5 rotate-180" /> : <Square className="w-2.5 h-2.5" />}
+            <Square className="w-2.5 h-2.5" />
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (displayInfo.isFullscreen) {
-                toggleFullscreen();
-              } else {
-                window.close();
-              }
-            }}
             className="w-8 h-7 flex items-center justify-center text-neutral-500 hover:bg-red-600 hover:text-white transition-colors rounded-xs"
             aria-label="Close"
-            title="Close Window"
           >
             <X className="w-3.5 h-3.5" />
           </button>
